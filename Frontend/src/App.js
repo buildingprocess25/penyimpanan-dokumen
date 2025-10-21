@@ -47,7 +47,7 @@ export default function App() {
 
       try {
         // 🔹 Kirim parameter cabang ke backend
-        const url = `https://dokumen-bnm-backend.onrender.com/documents?cabang=${encodeURIComponent(user.cabang)}`;
+        const url = `https://penyimpanan-dokumen-s8p6.onrender.com/documents?cabang=${encodeURIComponent(user.cabang)}`;
         const res = await fetch(url);
         const json = await res.json();
 
@@ -148,7 +148,7 @@ export default function App() {
   const handleEdit = async (doc) => {
     const kode = doc.KodeToko || doc.kode_toko;
     try {
-      const res = await fetch(`https://dokumen-bnm-backend.onrender.com/documents/${kode}`);
+      const res = await fetch(`https://penyimpanan-dokumen-s8p6.onrender.com/documents/${kode}`);
       const json = await res.json();
 
       if (json.ok) {
