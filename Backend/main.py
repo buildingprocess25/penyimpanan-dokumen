@@ -666,3 +666,18 @@ def get_documents(kode_toko: str):
         return {"ok": True, "data": found}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal ambil data: {e}")
+
+
+# ---------------- HEALTH ----------------
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@app.head("/health")
+async def health_head():
+    return {"status": "ok"}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
