@@ -18,6 +18,7 @@ import re
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.requests import Request
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -66,12 +67,15 @@ def get_services():
 # =========================
 app = FastAPI(title="Backend Alfamart (OAuth Multi-Upload Stable)")
 
+# === CORS Middleware untuk Render + Vercel ===
+origins = [
+    "https://penyimpanan-dokumen.vercel.app",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://penyimpanan-dokumen.vercel.app",  # 🔹 domain frontend kamu
-        "http://localhost:3000"                    # 🔹 untuk development lokal
-    ],  # batasi ke domain FE saat deploy
+    allow_origins=origins,
     allow_origin_regex="https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
