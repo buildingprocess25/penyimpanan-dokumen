@@ -17,10 +17,6 @@ import time
 import re
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from starlette.requests import Request
-from fastapi.responses import Response
-from starlette.middleware.base import BaseHTTPMiddleware
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -69,53 +65,16 @@ def get_services():
 # =========================
 app = FastAPI(title="Backend Alfamart (OAuth Multi-Upload Stable)")
 
-# ============================
-# ✅ CORS FIX KHUSUS UNTUK RENDER
-# ============================
-
-# Tambahkan middleware standar
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://penyimpanan-dokumen.vercel.app",
-        "http://localhost:3000",
-    ],
-    allow_origin_regex="https://.*\\.vercel\\.app",
+        "https://penyimpanan-dokumen.vercel.app",  # 🔹 domain frontend kamu
+        "http://localhost:3000"                    # 🔹 untuk development lokal
+    ],  # batasi ke domain FE saat deploy
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# =========================================================
-# 🔧 FIX CORS RENDER: Middleware + Catch-all OPTIONS
-# =========================================================
-
-@app.middleware("http")
-async def cors_middleware(request: Request, call_next):
-    """
-    Tambahkan header CORS ke SEMUA response (termasuk error)
-    """
-    # Kalau request OPTIONS, balas langsung tanpa lanjut ke route
-    if request.method == "OPTIONS":
-        return JSONResponse(
-            content={"ok": True},
-            headers={
-                "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "Authorization, Content-Type",
-                "Access-Control-Allow-Credentials": "true",
-            },
-        )
-
-    # Kalau bukan OPTIONS, teruskan request ke route berikutnya
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "https://penyimpanan-dokumen.vercel.app"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
-
 
 # =========================
 # HELPERS
@@ -221,34 +180,21 @@ def upload_one_file(
 def root():
     return {"message": "✅ Backend Alfamart (OAuth Multi-Upload) aktif!"}
 
-
 @app.post("/auth/login")
 async def login(request: Request):
     """
     Login berdasarkan EMAIL_SAT (username) dan CABANG (password)
     Hanya jabatan tertentu yang diizinkan login.
     """
-    CORS_HEADERS = {
-        "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        "Access-Control-Allow-Credentials": "true",
-    }
+    data = await request.json()
+    username = data.get("username", "").strip().lower()
+    password = data.get("password", "").strip().upper()
+
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username dan password wajib diisi.")
 
     try:
-        data = await request.json()
-        username = data.get("username", "").strip().lower()
-        password = data.get("password", "").strip().upper()
-
-        # === Validasi awal ===
-        if not username or not password:
-            return JSONResponse(
-                {"ok": False, "detail": "Username dan password wajib diisi."},
-                status_code=400,
-                headers=CORS_HEADERS,
-            )
-
-        # === Ambil data dari Sheet "Cabang" ===
+        # 🔹 Buka sheet 'Cabang'
         drive_service, _ = get_services()
         gc = gspread.authorize(load_credentials())
         ws = gc.open_by_key(SPREADSHEET_ID).worksheet("Cabang")
@@ -259,7 +205,6 @@ async def login(request: Request):
             "BRANCH BUILDING COORDINATOR",
         ]
 
-        # === Proses autentikasi ===
         for row in records:
             email = str(row.get("EMAIL_SAT", "")).strip().lower()
             jabatan = str(row.get("JABATAN", "")).strip().upper()
@@ -268,39 +213,26 @@ async def login(request: Request):
 
             if email == username and password == cabang:
                 if jabatan in allowed_roles:
-                    return JSONResponse(
-                        {
-                            "ok": True,
-                            "user": {
-                                "email": email,
-                                "nama": nama,
-                                "jabatan": jabatan,
-                                "cabang": cabang,
-                            },
+                    return {
+                        "ok": True,
+                        "user": {
+                            "email": email,
+                            "nama": nama,
+                            "jabatan": jabatan,
+                            "cabang": cabang,
                         },
-                        headers=CORS_HEADERS,
-                    )
+                    }
                 else:
-                    return JSONResponse(
-                        {"ok": False, "detail": "Jabatan tidak diizinkan."},
-                        status_code=403,
-                        headers=CORS_HEADERS,
-                    )
+                    raise HTTPException(status_code=403, detail="Jabatan tidak diizinkan.")
 
-        # === Jika tidak ditemukan ===
-        return JSONResponse(
-            {"ok": False, "detail": "Email atau password salah."},
-            status_code=401,
-            headers=CORS_HEADERS,
-        )
+        raise HTTPException(status_code=401, detail="Email atau password salah.")
 
     except Exception as e:
-        print(f"⚠️ Error login: {e}")
-        return JSONResponse(
-            {"ok": False, "detail": f"Terjadi kesalahan server: {e}"},
-            status_code=500,
-            headers=CORS_HEADERS,
-        )
+        # ✅ Biarkan HTTPException lewat tanpa dibungkus ulang
+        if isinstance(e, HTTPException):
+            raise e
+        # ⚠️ Error tak terduga (misal koneksi Google API)
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan server: {e}")
 
 
 @app.get("/documents")
@@ -675,18 +607,3 @@ def get_documents(kode_toko: str):
         return {"ok": True, "data": found}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal ambil data: {e}")
-
-
-# ---------------- HEALTH ----------------
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
-@app.head("/health")
-async def health_head():
-    return {"status": "ok"}
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
