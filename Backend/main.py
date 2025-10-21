@@ -17,6 +17,7 @@ import time
 import re
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -71,6 +72,7 @@ app.add_middleware(
         "https://penyimpanan-dokumen.vercel.app",  # 🔹 domain frontend kamu
         "http://localhost:3000"                    # 🔹 untuk development lokal
     ],  # batasi ke domain FE saat deploy
+    allow_origin_regex="https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -180,21 +182,27 @@ def upload_one_file(
 def root():
     return {"message": "✅ Backend Alfamart (OAuth Multi-Upload) aktif!"}
 
+
 @app.post("/auth/login")
 async def login(request: Request):
     """
     Login berdasarkan EMAIL_SAT (username) dan CABANG (password)
     Hanya jabatan tertentu yang diizinkan login.
     """
-    data = await request.json()
-    username = data.get("username", "").strip().lower()
-    password = data.get("password", "").strip().upper()
-
-    if not username or not password:
-        raise HTTPException(status_code=400, detail="Username dan password wajib diisi.")
-
     try:
-        # 🔹 Buka sheet 'Cabang'
+        data = await request.json()
+        username = data.get("username", "").strip().lower()
+        password = data.get("password", "").strip().upper()
+
+        # === Validasi awal ===
+        if not username or not password:
+            return JSONResponse(
+                {"ok": False, "detail": "Username dan password wajib diisi."},
+                status_code=400,
+                headers={"Access-Control-Allow-Origin": "*"},
+            )
+
+        # === Ambil data dari Sheet "Cabang" ===
         drive_service, _ = get_services()
         gc = gspread.authorize(load_credentials())
         ws = gc.open_by_key(SPREADSHEET_ID).worksheet("Cabang")
@@ -205,6 +213,7 @@ async def login(request: Request):
             "BRANCH BUILDING COORDINATOR",
         ]
 
+        # === Proses autentikasi ===
         for row in records:
             email = str(row.get("EMAIL_SAT", "")).strip().lower()
             jabatan = str(row.get("JABATAN", "")).strip().upper()
@@ -213,26 +222,40 @@ async def login(request: Request):
 
             if email == username and password == cabang:
                 if jabatan in allowed_roles:
-                    return {
-                        "ok": True,
-                        "user": {
-                            "email": email,
-                            "nama": nama,
-                            "jabatan": jabatan,
-                            "cabang": cabang,
+                    return JSONResponse(
+                        {
+                            "ok": True,
+                            "user": {
+                                "email": email,
+                                "nama": nama,
+                                "jabatan": jabatan,
+                                "cabang": cabang,
+                            },
                         },
-                    }
+                        headers={"Access-Control-Allow-Origin": "*"},
+                    )
                 else:
-                    raise HTTPException(status_code=403, detail="Jabatan tidak diizinkan.")
+                    return JSONResponse(
+                        {"ok": False, "detail": "Jabatan tidak diizinkan."},
+                        status_code=403,
+                        headers={"Access-Control-Allow-Origin": "*"},
+                    )
 
-        raise HTTPException(status_code=401, detail="Email atau password salah.")
+        # === Jika tidak ditemukan ===
+        return JSONResponse(
+            {"ok": False, "detail": "Email atau password salah."},
+            status_code=401,
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
 
     except Exception as e:
-        # ✅ Biarkan HTTPException lewat tanpa dibungkus ulang
-        if isinstance(e, HTTPException):
-            raise e
-        # ⚠️ Error tak terduga (misal koneksi Google API)
-        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan server: {e}")
+        # Tangkap semua error tak terduga
+        print(f"⚠️ Error login: {e}")
+        return JSONResponse(
+            {"ok": False, "detail": f"Terjadi kesalahan server: {e}"},
+            status_code=500,
+            headers={"Access-Control-Allow-Origin": "*"},
+        )
 
 
 @app.get("/documents")
@@ -607,3 +630,11 @@ def get_documents(kode_toko: str):
         return {"ok": True, "data": found}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal ambil data: {e}")
+
+
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    """
+    Supaya preflight OPTIONS request dari browser (CORS) tidak error di Render.
+    """
+    return {}
