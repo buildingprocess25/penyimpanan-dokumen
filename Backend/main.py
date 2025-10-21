@@ -68,6 +68,21 @@ def get_services():
 # =========================
 app = FastAPI(title="Backend Alfamart (OAuth Multi-Upload Stable)")
 
+# === FIX FINAL CORS UNTUK RENDER ===
+@app.options("/{any_path:path}")
+async def preflight_handler(any_path: str):
+    """
+    Tangani semua preflight OPTIONS dari browser agar Render tidak menolak.
+    """
+    headers = {
+        "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Allow-Credentials": "true",
+    }
+    return JSONResponse(content={"ok": True}, headers=headers)
+
+
 # =========================
 # ✅ STEP 1: CORS MIDDLEWARE
 # =========================
