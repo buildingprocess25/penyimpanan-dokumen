@@ -68,45 +68,30 @@ def get_services():
 # =========================
 app = FastAPI(title="Backend Alfamart (OAuth Multi-Upload Stable)")
 
-# === FIX FINAL CORS UNTUK RENDER ===
-@app.options("/{any_path:path}")
-async def preflight_handler(any_path: str):
-    """
-    Tangani semua preflight OPTIONS dari browser agar Render tidak menolak.
-    """
-    headers = {
-        "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        "Access-Control-Allow-Credentials": "true",
-    }
-    return JSONResponse(content={"ok": True}, headers=headers)
+# ============================
+# ✅ CORS FIX KHUSUS UNTUK RENDER
+# ============================
 
-
-# =========================
-# ✅ STEP 1: CORS MIDDLEWARE
-# =========================
+# 1️⃣ Tambahkan middleware standar
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://penyimpanan-dokumen.vercel.app",  # domain vercel kamu
-        "http://localhost:3000",                   # untuk lokal dev
+        "https://penyimpanan-dokumen.vercel.app",
+        "http://localhost:3000",
     ],
-    allow_origin_regex="https://.*\.vercel\.app",  # dukung subdomain vercel
+    allow_origin_regex="https://.*\\.vercel\\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
-# ✅ STEP 2: FORCE CORS HEADERS
-# =========================
+# 2️⃣ Tambahkan middleware paksa untuk semua response
 @app.middleware("http")
-async def add_cors_headers(request, call_next):
-    # Tangani preflight (OPTIONS)
+async def ensure_cors_headers(request: Request, call_next):
+    # Jika ini adalah preflight request (OPTIONS)
     if request.method == "OPTIONS":
-        return Response(
-            content="",
+        return JSONResponse(
+            content={"ok": True},
             status_code=200,
             headers={
                 "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
@@ -116,7 +101,7 @@ async def add_cors_headers(request, call_next):
             },
         )
 
-    # Tangani request normal (GET/POST/PUT/DELETE)
+    # Untuk semua response lain
     response = await call_next(request)
     response.headers["Access-Control-Allow-Origin"] = "https://penyimpanan-dokumen.vercel.app"
     response.headers["Access-Control-Allow-Credentials"] = "true"
