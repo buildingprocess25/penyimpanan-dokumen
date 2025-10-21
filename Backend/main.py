@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -218,6 +219,13 @@ async def login(request: Request):
     Login berdasarkan EMAIL_SAT (username) dan CABANG (password)
     Hanya jabatan tertentu yang diizinkan login.
     """
+    CORS_HEADERS = {
+        "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        "Access-Control-Allow-Credentials": "true",
+    }
+
     try:
         data = await request.json()
         username = data.get("username", "").strip().lower()
@@ -228,7 +236,7 @@ async def login(request: Request):
             return JSONResponse(
                 {"ok": False, "detail": "Username dan password wajib diisi."},
                 status_code=400,
-                headers={"Access-Control-Allow-Origin": "*"},
+                headers=CORS_HEADERS,
             )
 
         # === Ambil data dari Sheet "Cabang" ===
@@ -261,29 +269,28 @@ async def login(request: Request):
                                 "cabang": cabang,
                             },
                         },
-                        headers={"Access-Control-Allow-Origin": "*"},
+                        headers=CORS_HEADERS,
                     )
                 else:
                     return JSONResponse(
                         {"ok": False, "detail": "Jabatan tidak diizinkan."},
                         status_code=403,
-                        headers={"Access-Control-Allow-Origin": "*"},
+                        headers=CORS_HEADERS,
                     )
 
         # === Jika tidak ditemukan ===
         return JSONResponse(
             {"ok": False, "detail": "Email atau password salah."},
             status_code=401,
-            headers={"Access-Control-Allow-Origin": "*"},
+            headers=CORS_HEADERS,
         )
 
     except Exception as e:
-        # Tangkap semua error tak terduga
         print(f"⚠️ Error login: {e}")
         return JSONResponse(
             {"ok": False, "detail": f"Terjadi kesalahan server: {e}"},
             status_code=500,
-            headers={"Access-Control-Allow-Origin": "*"},
+            headers=CORS_HEADERS,
         )
 
 
