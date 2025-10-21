@@ -232,8 +232,8 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
       };
 
       const url = form.isEditing
-        ? `https://dokumen-bnm-backend.onrender.com/document/${form.kodeToko}`
-        : "https://dokumen-bnm-backend.onrender.com/save-document-base64/";
+        ? `https://penyimpanan-dokumen-s8p6.onrender.com/document/${form.kodeToko}`
+        : "https://penyimpanan-dokumen-s8p6.onrender.com/save-document-base64/";
       const method = form.isEditing ? "PUT" : "POST";
 
       console.log(`📤 ${method} ke ${url}`, payload);

@@ -2,7 +2,7 @@
 // 🌐 BACKEND CONNECTION
 // ============================
 
-export const BASE_URL = "https://dokumen-bnm-backend.onrender.com"; // 🔹 ganti ke URL Render saat deploy
+export const BASE_URL = "https://penyimpanan-dokumen-s8p6.onrender.com"; // 🔹 ganti ke URL Render saat deploy
 
 export const StorageAPI = {
    BASE_URL,

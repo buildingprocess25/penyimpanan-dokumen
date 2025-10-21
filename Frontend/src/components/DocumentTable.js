@@ -97,7 +97,7 @@ export default function DocumentTable({ onEdit }) {
   async function handleEdit(doc) {
     const kode = doc.KodeToko || doc.kode_toko;
     try {
-      const res = await fetch(`https://dokumen-bnm-backend.onrender.com/documents/${kode}`);
+      const res = await fetch(`https://penyimpanan-dokumen-s8p6.onrender.com/documents/${kode}`);
       const json = await res.json();
 
       if (json.ok) {
