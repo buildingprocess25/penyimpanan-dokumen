@@ -632,9 +632,20 @@ def get_documents(kode_toko: str):
         raise HTTPException(status_code=500, detail=f"Gagal ambil data: {e}")
 
 
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(rest_of_path: str):
-    """
-    Supaya preflight OPTIONS request dari browser (CORS) tidak error di Render.
-    """
-    return {}
+# === FIX Render: tangani semua preflight OPTIONS ===
+@app.middleware("http")
+async def cors_preflight_middleware(request: Request, call_next):
+    # Jika browser kirim preflight (OPTIONS), langsung balas dengan header CORS
+    if request.method == "OPTIONS":
+        headers = {
+            "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type",
+        }
+        return JSONResponse(content={"ok": True}, headers=headers)
+    # Lanjut ke handler berikutnya
+    response = await call_next(request)
+    # Pastikan semua response punya header CORS
+    response.headers["Access-Control-Allow-Origin"] = "https://penyimpanan-dokumen.vercel.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
