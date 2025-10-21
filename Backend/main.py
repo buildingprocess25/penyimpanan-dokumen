@@ -19,6 +19,7 @@ from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
+from fastapi.responses import Response
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -67,20 +68,45 @@ def get_services():
 # =========================
 app = FastAPI(title="Backend Alfamart (OAuth Multi-Upload Stable)")
 
-# === CORS Middleware untuk Render + Vercel ===
-origins = [
-    "https://penyimpanan-dokumen.vercel.app",
-    "http://localhost:3000",
-]
-
+# =========================
+# ✅ STEP 1: CORS MIDDLEWARE
+# =========================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex="https://.*\.vercel\.app",
+    allow_origins=[
+        "https://penyimpanan-dokumen.vercel.app",  # domain vercel kamu
+        "http://localhost:3000",                   # untuk lokal dev
+    ],
+    allow_origin_regex="https://.*\.vercel\.app",  # dukung subdomain vercel
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =========================
+# ✅ STEP 2: FORCE CORS HEADERS
+# =========================
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    # Tangani preflight (OPTIONS)
+    if request.method == "OPTIONS":
+        return Response(
+            content="",
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type",
+                "Access-Control-Allow-Credentials": "true",
+            },
+        )
+
+    # Tangani request normal (GET/POST/PUT/DELETE)
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "https://penyimpanan-dokumen.vercel.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
 
 # =========================
 # HELPERS
@@ -634,22 +660,3 @@ def get_documents(kode_toko: str):
         return {"ok": True, "data": found}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal ambil data: {e}")
-
-
-# === FIX Render: tangani semua preflight OPTIONS ===
-@app.middleware("http")
-async def cors_preflight_middleware(request: Request, call_next):
-    # Jika browser kirim preflight (OPTIONS), langsung balas dengan header CORS
-    if request.method == "OPTIONS":
-        headers = {
-            "Access-Control-Allow-Origin": "https://penyimpanan-dokumen.vercel.app",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Authorization, Content-Type",
-        }
-        return JSONResponse(content={"ok": True}, headers=headers)
-    # Lanjut ke handler berikutnya
-    response = await call_next(request)
-    # Pastikan semua response punya header CORS
-    response.headers["Access-Control-Allow-Origin"] = "https://penyimpanan-dokumen.vercel.app"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
