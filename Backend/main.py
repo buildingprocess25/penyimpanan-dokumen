@@ -16,6 +16,7 @@ import mimetypes
 import time
 import re
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -66,7 +67,10 @@ app = FastAPI(title="Backend Alfamart (OAuth Multi-Upload Stable)")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # batasi ke domain FE saat deploy
+    allow_origins=[
+        "https://penyimpanan-dokumen.vercel.app",  # 🔹 domain frontend kamu
+        "http://localhost:3000"                    # 🔹 untuk development lokal
+    ],  # batasi ke domain FE saat deploy
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
