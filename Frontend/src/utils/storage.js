@@ -2,7 +2,7 @@
 // 🌐 BACKEND CONNECTION
 // ============================
 
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"; // 🔹 ganti ke URL Render saat deploy
+export const BASE_URL = "https://dokumen-bnm-backend.onrender.com"; // 🔹 ganti ke URL Render saat deploy
 
 export const StorageAPI = {
    BASE_URL,
