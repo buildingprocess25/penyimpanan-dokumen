@@ -86,10 +86,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# === UNIVERSAL CORS FIX UNTUK RENDER ===
+
+# =========================================================
+# 🔧 FIX CORS RENDER: Middleware + Catch-all OPTIONS
+# =========================================================
+
 @app.middleware("http")
-async def global_cors_handler(request: Request, call_next):
-    # Jika preflight (OPTIONS), langsung balas di sini
+async def cors_middleware(request: Request, call_next):
+    """
+    Tambahkan header CORS ke SEMUA response (termasuk error)
+    """
+    # Kalau request OPTIONS, balas langsung tanpa lanjut ke route
     if request.method == "OPTIONS":
         return JSONResponse(
             content={"ok": True},
@@ -101,9 +108,11 @@ async def global_cors_handler(request: Request, call_next):
             },
         )
 
-    # Untuk request normal
+    # Kalau bukan OPTIONS, teruskan request ke route berikutnya
     response = await call_next(request)
     response.headers["Access-Control-Allow-Origin"] = "https://penyimpanan-dokumen.vercel.app"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
