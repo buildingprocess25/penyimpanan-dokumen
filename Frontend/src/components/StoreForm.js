@@ -232,8 +232,8 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
       };
 
       const url = form.isEditing
-        ? `http://127.0.0.1:8000/document/${form.kodeToko}`
-        : "http://127.0.0.1:8000/save-document-base64/";
+        ? `${BASE_URL}/document/${form.kodeToko}`
+        : "${BASE_URL}/save-document-base64/";
       const method = form.isEditing ? "PUT" : "POST";
 
       console.log(`📤 ${method} ke ${url}`, payload);
