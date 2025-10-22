@@ -107,8 +107,6 @@ export default function UploadSection({ onFilesChange = () => {} }) {
   const handleDelete = (category, idx) => {
     setPreviews((prev) => {
       const updated = { ...prev };
-
-      // Ambil data file yang dihapus
       const deletedFile = prev[category][idx];
       updated[category] = prev[category].filter((_, i) => i !== idx);
 
@@ -118,8 +116,11 @@ export default function UploadSection({ onFilesChange = () => {} }) {
           new CustomEvent("delete-file", {
             detail: {
               category,
-              filename: deletedFile.name || deletedFile.filename,
-              url: deletedFile.url || null,
+              file: {
+                name: deletedFile.name || deletedFile.filename,
+                url: deletedFile.url || null,
+                category,
+              },
             },
           })
         );

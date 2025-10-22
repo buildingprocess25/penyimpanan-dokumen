@@ -150,7 +150,7 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
       const filename = file.name || file.filename;
       const fileUrl = file.url || "";
 
-      // 🗑️ Hapus dari files (file baru yang belum tersimpan)
+      // 🗑️ Hapus dari files (baru)
       setFiles((prev) => {
         const updated = { ...prev };
         updated[category] = (prev[category] || []).filter(
@@ -164,7 +164,7 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
         return updated;
       });
 
-      // 🗑️ Hapus dari existingFiles (file lama dari Drive)
+      // 🗑️ Hapus dari existingFiles (lama)
       setExistingFiles((prev) =>
         prev.filter(
           (f) =>
