@@ -6,6 +6,8 @@ import DocumentTable from "./components/DocumentTable";
 import Login from "./components/Login";
 import Toast from "./components/Toast";
 import SuccessModal from "./components/SuccessModal";
+import ErrorModal from "./components/ErrorModal";
+
 
 // 🔹 Komponen modal logout modern
 function LogoutModal({ show, onConfirm, onCancel }) {
@@ -39,6 +41,7 @@ export default function App() {
   const [showLogout, setShowLogout] = useState(false);
   const [toast, setToast] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   // === Ambil daftar dokumen dari backend (filter sesuai cabang user) ===
   useEffect(() => {
@@ -106,6 +109,18 @@ export default function App() {
     window.addEventListener("show-success", onShowSuccess);
     return () => window.removeEventListener("show-success", onShowSuccess);
   }, [page]);
+
+
+  useEffect(() => {
+    const onShowError = (e) => {
+      setErrorMsg({
+        title: "Error",
+        message: e.detail,
+      });
+    };
+    window.addEventListener("show-error", onShowError);
+    return () => window.removeEventListener("show-error", onShowError);
+  }, []);
 
 
   // === Logout Modal Handler ===
@@ -265,6 +280,14 @@ export default function App() {
         />
       )}
 
+      {errorMsg && (
+        <ErrorModal
+          title={errorMsg.title}
+          message={errorMsg.message}
+          onClose={() => setErrorMsg(null)}
+        />
+      )}
+      
     </div>
   );
 }

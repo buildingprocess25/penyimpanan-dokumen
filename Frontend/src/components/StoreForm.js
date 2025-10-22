@@ -180,7 +180,11 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
     const errorsFound = validate();
     setErrors(errorsFound);
     if (Object.keys(errorsFound).length > 0) {
-      alert("⚠️ Periksa kembali inputan yang belum valid.");
+      window.dispatchEvent(
+        new CustomEvent("show-error", {
+          detail: "⚠️ Periksa kembali inputan yang belum valid.",
+        })
+      );
       setSaving(false);
       return;
     }
@@ -262,6 +266,7 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const json = await res.json().catch(() => null);
       console.log("📥 Response:", json);
 
@@ -300,12 +305,15 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
         const msg =
           json?.message ||
           "❌ Gagal menyimpan dokumen (kode toko mungkin sudah terdaftar).";
-        alert(msg);
-      }
 
+        // 🔹 Ganti alert dengan modal error
+        window.dispatchEvent(new CustomEvent("show-error", { detail: msg }));
+      }
     } catch (err) {
       console.error("🔥 Error saat upload:", err);
-      alert("❌ Gagal menghubungi server!");
+      window.dispatchEvent(
+        new CustomEvent("show-error", { detail: "❌ Gagal menghubungi server!" })
+      );
     } finally {
       setSaving(false);
     }
