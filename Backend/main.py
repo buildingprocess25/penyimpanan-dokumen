@@ -415,19 +415,13 @@ async def save_document_base64(request: Request):
 
 @app.put("/document/{kode_toko}")
 async def update_document(kode_toko: str, request: Request):
-    """
-    Update data toko + file baru ke folder yang sama di Google Drive.
-    - Jika files kosong → hanya update data teks (nama, luas, dll).
-    - Jika ada files baru → upload baru, tetapi file lama yang tidak diubah tetap dipertahankan.
-    - File lama yang dihapus user akan dihapus di Drive.
-    """
     try:
         data = await request.json()
         files = data.get("files", [])
 
         drive_service, SHEET = get_services()
 
-        # 🔹 Cari baris toko di spreadsheet
+        # 🔹 Cari baris data di spreadsheet
         records = SHEET.get_all_records()
         row_index = next(
             (i + 2 for i, r in enumerate(records)
@@ -437,13 +431,13 @@ async def update_document(kode_toko: str, request: Request):
         if not row_index:
             raise HTTPException(status_code=404, detail="Data tidak ditemukan di spreadsheet.")
 
-        # 🔹 Ambil folder lama
+        # 🔹 Ambil link folder lama
         old_folder_link = records[row_index - 2].get("folder_link")
         if not old_folder_link or "folders/" not in old_folder_link:
             raise HTTPException(status_code=400, detail="Folder Drive lama tidak ditemukan.")
         toko_folder_id = old_folder_link.split("folders/")[-1]
 
-        # 🔹 Ambil file lama dari kolom 'file_links' jika ada
+        # 🔹 Ambil file lama dari spreadsheet
         old_file_links = records[row_index - 2].get("file_links", "")
         old_files = []
         if old_file_links:
@@ -457,27 +451,14 @@ async def update_document(kode_toko: str, request: Request):
                         "link": link
                     })
 
-        # 🔹 Ambil semua file yang sudah ada di folder toko di Drive
+        # 🔹 Ambil semua file di folder toko saat ini
         existing_files = drive_service.files().list(
             q=f"'{toko_folder_id}' in parents and trashed = false",
-            fields="files(id, name, parents)"
+            fields="files(id, name)"
         ).execute().get("files", [])
-
         existing_names = {f["name"] for f in existing_files}
-        new_names = {f.get("filename") for f in files if f.get("filename")}
-        to_delete = [f for f in existing_files if f["name"] not in new_names]
 
-        # 🔹 Hapus file yang sudah tidak ada di form
-        for f in to_delete:
-            try:
-                drive_service.files().delete(fileId=f["id"]).execute()
-                print(f"🗑️ Hapus file lama: {f['name']}")
-            except Exception as del_err:
-                print(f"⚠️ Gagal hapus {f['name']}: {del_err}")
-
-        # 🔹 Siapkan hasil akhir
         file_links = []
-        category_folders = {}
         kategori_log = {}
 
         for idx, f in enumerate(files, start=1):
@@ -485,71 +466,72 @@ async def update_document(kode_toko: str, request: Request):
             filename = f.get("filename") or f"file_{idx}"
             mime_type = guess_mime(filename, f.get("type"))
 
-            # 👉 CASE 1: file baru (ada base64 data)
+            # ✅ CASE 1: File baru (ada base64)
             if f.get("data"):
-                if category not in category_folders:
-                    category_folders[category] = get_or_create_folder(category, toko_folder_id, drive_service)
+                if category not in kategori_log:
                     kategori_log[category] = {"total": 0, "sukses": 0}
                 kategori_log[category]["total"] += 1
 
-                try:
-                    raw = decode_base64_maybe_with_prefix(f["data"])
-                    uploaded = upload_one_file(
-                        drive_service=drive_service,
-                        folder_id=category_folders[category],
-                        filename=filename,
-                        mime_type=mime_type,
-                        raw_bytes=raw,
-                        max_retry=2
-                    )
+                raw = decode_base64_maybe_with_prefix(f["data"])
+                uploaded = upload_one_file(
+                    drive_service=drive_service,
+                    folder_id=toko_folder_id,
+                    filename=filename,
+                    mime_type=mime_type,
+                    raw_bytes=raw,
+                    max_retry=2
+                )
 
-                    file_id = uploaded.get("id")
-                    link = uploaded.get("webViewLink")
-                    thumb = uploaded.get("thumbnailLink")
+                file_id = uploaded.get("id")
+                link = uploaded.get("webViewLink")
+                thumb = uploaded.get("thumbnailLink")
+                if link:
+                    file_id = link.split("/d/")[-1].split("/")[0]
+                    direct_link = f"https://drive.google.com/uc?export=view&id={file_id}"
+                elif thumb:
+                    direct_link = thumb
+                else:
+                    direct_link = ""
 
-                    if link:
-                        file_id = link.split("/d/")[-1].split("/")[0]
-                        direct_link = f"https://drive.google.com/uc?export=view&id={file_id}"
-                    elif thumb:
-                        direct_link = thumb
-                    else:
-                        direct_link = ""
+                if file_id:
+                    try:
+                        drive_service.permissions().create(
+                            fileId=file_id,
+                            body={"type": "anyone", "role": "reader"},
+                            fields="id"
+                        ).execute()
+                    except Exception:
+                        pass
 
-                    # Set permission publik
-                    if file_id:
-                        try:
-                            drive_service.permissions().create(
-                                fileId=file_id,
-                                body={"type": "anyone", "role": "reader"},
-                                fields="id"
-                            ).execute()
-                        except Exception as perm_err:
-                            print(f"⚠️ Gagal set permission publik: {perm_err}")
+                if direct_link:
+                    file_links.append(f"{category}|{filename}|{direct_link}")
+                    kategori_log[category]["sukses"] += 1
+                    print(f"✅ Uploaded baru: {filename}")
 
-                    if direct_link:
-                        file_links.append(f"{category}|{filename}|{direct_link}")
-                        kategori_log[category]["sukses"] = kategori_log[category].get("sukses", 0) + 1
-                        print(f"✅ Uploaded baru: {filename} → {category}")
-                except Exception as e:
-                    print(f"❌ Gagal upload {filename}: {e}")
-
-            # 👉 CASE 2: file lama (tidak ada base64, hanya referensi)
+            # ✅ CASE 2: File lama (tidak ada base64)
             else:
                 existing = next((x for x in old_files if x["filename"] == filename), None)
                 if existing:
+                    # Jika file belum ada di folder, coba buat shortcut supaya tetap muncul di folder Drive baru
+                    try:
+                        drive_service.files().create(
+                            body={
+                                "name": existing["filename"],
+                                "mimeType": "application/vnd.google-apps.shortcut",
+                                "shortcutDetails": {"targetId": existing["link"].split("/d/")[-1].split("/")[0]},
+                                "parents": [toko_folder_id],
+                            },
+                            fields="id"
+                        ).execute()
+                        print(f"🔗 Shortcut file lama ditambahkan: {existing['filename']}")
+                    except Exception as e:
+                        print(f"⚠️ Gagal membuat shortcut file lama: {e}")
+
                     file_links.append(f"{existing['category']}|{existing['filename']}|{existing['link']}")
-                    print(f"🔁 Pertahankan file lama: {existing['filename']}")
                 else:
-                    print(f"⚠️ Tidak ditemukan file lama untuk: {filename}")
+                    print(f"⚠️ File lama tidak ditemukan: {filename}")
 
-        # ===== Log upload hasil =====
-        if kategori_log:
-            print("\n========== HASIL UPLOAD (UPDATE) ==========")
-            for cat, info in kategori_log.items():
-                print(f"📂 {cat}: {info.get('sukses', 0)}/{info.get('total', 0)} sukses")
-            print("===========================================\n")
-
-        # ===== Update baris spreadsheet =====
+        # 🔹 Update baris di Spreadsheet
         SHEET.update(
             f"A{row_index}:I{row_index}",
             [[
@@ -567,7 +549,7 @@ async def update_document(kode_toko: str, request: Request):
 
         return {
             "ok": True,
-            "message": "✅ Dokumen & file berhasil diperbarui tanpa merusak file lama.",
+            "message": "✅ Dokumen & file diperbarui. File lama disalin ke folder Drive.",
             "folder_link": old_folder_link,
             "files_uploaded": len(file_links),
         }
