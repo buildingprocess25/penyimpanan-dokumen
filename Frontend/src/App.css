@@ -768,3 +768,113 @@ body {
     padding: 1rem;
   }
 }
+
+
+/* === 📱 RESPONSIVE FIXES === */
+/* 🔹 Layout Umum */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  .main-content {
+    padding-top: 110px;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+
+  .store-form .grid {
+    grid-template-columns: 1fr; /* kolom tunggal di mobile */
+  }
+
+  .store-form .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn,
+  .button {
+    width: 100%; /* tombol full width di mobile */
+    text-align: center;
+  }
+
+  /* 🔹 Table scroll horizontal */
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .table thead th,
+  .table tbody td {
+    font-size: 0.85rem;
+    padding: 8px;
+  }
+
+  /* 🔹 Upload Section & Preview */
+  .preview-grid {
+    gap: 6px;
+    justify-content: flex-start;
+  }
+
+  .preview-thumb {
+    width: 65px;
+    height: 65px;
+  }
+
+  /* 🔹 Modal */
+  .modal-box,
+  .success-modal {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  /* 🔹 Header Adjustment */
+  .header-bottom {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .header-top h1 {
+    font-size: 1rem;
+  }
+}
+
+/* 🔹 Extra small (≤480px) */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0.8rem;
+  }
+
+  .btn-logout {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .store-form .section-title {
+    font-size: 0.95rem;
+  }
+
+  .toast-box {
+    font-size: 0.85rem;
+    padding: 14px 20px;
+    width: 90%;
+  }
+
+  .toast-popup {
+    right: 10px;
+    top: 10px;
+    font-size: 0.7rem;
+  }
+
+  .success-icon {
+    width: 55px;
+    height: 55px;
+    font-size: 1.6rem;
+  }
+}
