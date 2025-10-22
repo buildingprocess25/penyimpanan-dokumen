@@ -416,16 +416,36 @@ async def save_document_base64(request: Request):
 @app.put("/document/{kode_toko}")
 async def update_document(kode_toko: str, request: Request):
     """
-    Perbaikan: 
+    Versi lengkap:
     - File dikenali unik per kategori (kategori + filename)
     - File yang dihapus hanya dihapus di kategori sama
     - File baru disimpan di folder kategori yang sesuai
+    - Validasi: tidak boleh upload file dengan nama sama di kategori yang sama
     """
     try:
         data = await request.json()
         files = data.get("files", [])
 
         drive_service, SHEET = get_services()
+
+        # 🔹 Validasi duplikat file berdasarkan kategori + nama
+        seen = set()
+        duplicates = []
+        for f in files:
+            category = (f.get("category") or "pendukung").strip() or "pendukung"
+            filename = f.get("filename")
+            if not filename:
+                continue
+            key = (category.lower(), filename.lower())
+            if key in seen:
+                duplicates.append(f"{category}/{filename}")
+            seen.add(key)
+
+        if duplicates:
+            return {
+                "ok": False,
+                "message": f"❌ Tidak boleh upload file duplikat pada kategori yang sama! Duplikat ditemukan: {', '.join(duplicates)}"
+            }
 
         # 🔹 Cari data toko
         records = SHEET.get_all_records()
@@ -475,10 +495,8 @@ async def update_document(kode_toko: str, request: Request):
                 })
 
         # === 🔹 DELETE: Hapus file lama hanya jika hilang di kategori yang sama ===
-        # Buat set unik: (kategori, nama)
         existing_keys = {(f["category"], f["name"]) for f in existing_files}
         new_keys = {(f.get("category"), f.get("filename")) for f in files if f.get("filename")}
-
         to_delete = [f for f in existing_files if (f["category"], f["name"]) not in new_keys]
 
         for f in to_delete:
