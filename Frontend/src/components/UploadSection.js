@@ -71,37 +71,35 @@ export default function UploadSection({ onFilesChange = () => {} }) {
   // === Handle Upload Baru ===
   const handleFiles = async (category, files) => {
     const arr = Array.from(files || []);
-    onFilesChange(category, arr);
+    onFilesChange(category, arr); // tetap simpan array asli (untuk info nama)
 
-    const imageFiles = arr.filter((f) => f.type.startsWith("image/"));
-    const otherFiles = arr.filter((f) => !f.type.startsWith("image/"));
-
-    const previewPromises = imageFiles.map(
+    // Konversi SEMUA file ke base64 (bukan hanya image)
+    const filePromises = arr.map(
       (file) =>
         new Promise((resolve) => {
           const reader = new FileReader();
-          reader.onload = () =>
+          reader.onload = () => {
+            // hasil reader.result = "data:<mime>;base64,AAAA..."
             resolve({
               name: file.name,
-              type: "image",
-              url: reader.result,
+              type: file.type.startsWith("image/") ? "image" : "file",
+              url: file.type.startsWith("image/") ? reader.result : "",
+              data: reader.result, // 🔹 wajib kirim ini ke backend
             });
+          };
           reader.readAsDataURL(file);
         })
     );
 
-    const previewUrls = await Promise.all(previewPromises);
-    const nonImagePreviews = otherFiles.map((f) => ({
-      name: f.name,
-      type: "file",
-      url: "",
-    }));
+    const fileResults = await Promise.all(filePromises);
 
+    // Buat preview (gambar tampil, non-image hanya nama)
     setPreviews((prev) => ({
       ...prev,
-      [category]: [...(prev[category] || []), ...previewUrls, ...nonImagePreviews],
+      [category]: [...(prev[category] || []), ...fileResults],
     }));
   };
+
 
   // === Hapus File ===
   const handleDelete = (category, idx) => {
