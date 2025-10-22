@@ -68,39 +68,64 @@ export default function UploadSection({ onFilesChange = () => {} }) {
     return () => window.removeEventListener("clear-previews", clear);
   }, []);
 
+
   // === Handle Upload Baru ===
   const handleFiles = async (category, files) => {
     const arr = Array.from(files || []);
-    onFilesChange(category, arr);
 
-    const imageFiles = arr.filter((f) => f.type.startsWith("image/"));
-    const otherFiles = arr.filter((f) => !f.type.startsWith("image/"));
+    // === 🚫 Deteksi duplikat berdasarkan nama file di kategori yang sama ===
+    setPreviews((prev) => {
+      const existingNames = (prev[category] || []).map((f) => f.name.toLowerCase());
+      const duplicates = arr.filter((f) => existingNames.includes(f.name.toLowerCase()));
 
-    const previewPromises = imageFiles.map(
-      (file) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () =>
-            resolve({
-              name: file.name,
-              type: "image",
-              url: reader.result,
-            });
-          reader.readAsDataURL(file);
-        })
-    );
+      if (duplicates.length > 0) {
+        // 🔔 Tampilkan notifikasi
+        window.dispatchEvent(
+          new CustomEvent("show-toast", {
+            detail: "⚠️ Tidak boleh upload file duplikat pada kategori ini!",
+          })
+        );
+        return prev; // ❌ Tidak lanjut update preview
+      }
 
-    const previewUrls = await Promise.all(previewPromises);
-    const nonImagePreviews = otherFiles.map((f) => ({
-      name: f.name,
-      type: "file",
-      url: "",
-    }));
+      // === Lanjutkan hanya jika tidak ada duplikat ===
+      const imageFiles = arr.filter((f) => f.type.startsWith("image/"));
+      const otherFiles = arr.filter((f) => !f.type.startsWith("image/"));
 
-    setPreviews((prev) => ({
-      ...prev,
-      [category]: [...(prev[category] || []), ...previewUrls, ...nonImagePreviews],
-    }));
+      const previewPromises = imageFiles.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve({
+                name: file.name,
+                type: "image",
+                url: reader.result,
+              });
+            reader.readAsDataURL(file);
+          })
+      );
+
+      // Tambahkan file non-image
+      return (async () => {
+        const previewUrls = await Promise.all(previewPromises);
+        const nonImagePreviews = otherFiles.map((f) => ({
+          name: f.name,
+          type: "file",
+          url: "",
+        }));
+
+        // Gabungkan file baru ke kategori
+        const updated = {
+          ...prev,
+          [category]: [...(prev[category] || []), ...previewUrls, ...nonImagePreviews],
+        };
+
+        // Beritahu parent (misal StoreForm) bahwa file berubah
+        onFilesChange(category, arr);
+        return updated;
+      })();
+    });
   };
 
   // === Hapus File ===
