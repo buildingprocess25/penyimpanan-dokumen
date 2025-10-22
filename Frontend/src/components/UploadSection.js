@@ -103,19 +103,27 @@ export default function UploadSection({ onFilesChange = () => {} }) {
     }));
   };
 
-  // === Hapus File ===
+  // === 🗑️ Hapus File dari Preview & Sinkron dengan StoreForm ===
   const handleDelete = (category, idx) => {
     setPreviews((prev) => {
       const updated = { ...prev };
-      const deletedFile = prev[category][idx]; // ambil file yang dihapus
+
+      // Ambil data file yang dihapus
+      const deletedFile = prev[category][idx];
       updated[category] = prev[category].filter((_, i) => i !== idx);
 
-      // Kirim event ke StoreForm agar sinkron
-      window.dispatchEvent(
-        new CustomEvent("delete-file", {
-          detail: { category, index: idx, file: deletedFile },
-        })
-      );
+      // Kirim event global agar StoreForm ikut hapus
+      if (deletedFile) {
+        window.dispatchEvent(
+          new CustomEvent("delete-file", {
+            detail: {
+              category,
+              filename: deletedFile.name || deletedFile.filename,
+              url: deletedFile.url || null,
+            },
+          })
+        );
+      }
 
       return updated;
     });

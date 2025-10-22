@@ -141,30 +141,41 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
     return e;
   };
 
-  // 🔹 Hapus file baru dari preview
+  // 🔹 Sinkron hapus file dari StoreForm
   useEffect(() => {
     const onDelete = (e) => {
-      const { category, index, file } = e.detail || {};
-      if (!category || index == null) return;
+      const { category, file } = e.detail || {};
+      if (!category || !file) return;
 
-      // Hapus file baru
+      const filename = file.name || file.filename;
+      const fileUrl = file.url || "";
+
+      // 🗑️ Hapus dari files (file baru yang belum tersimpan)
       setFiles((prev) => {
-        const arr = [...(prev[category] || [])];
-        arr.splice(index, 1);
-        return { ...prev, [category]: arr };
+        const updated = { ...prev };
+        updated[category] = (prev[category] || []).filter(
+          (f) =>
+            !(
+              f.filename === filename ||
+              f.name === filename ||
+              (f.url && f.url === fileUrl)
+            )
+        );
+        return updated;
       });
 
-      // Hapus file lama
-      setExistingFiles((prev) => {
-        if (!file?.name && !file?.url) return prev; // tidak tahu file mana
-        return prev.filter(
+      // 🗑️ Hapus dari existingFiles (file lama dari Drive)
+      setExistingFiles((prev) =>
+        prev.filter(
           (f) =>
             !(
               f.category === category &&
-              (f.name === file.name || f.url === file.url)
+              (f.filename === filename ||
+                f.name === filename ||
+                (f.url && f.url === fileUrl))
             )
-        );
-      });
+        )
+      );
     };
 
     window.addEventListener("delete-file", onDelete);
