@@ -173,138 +173,143 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
 
 
   // 🔹 Submit utama
-const onSubmit = async (e) => {
-  e.preventDefault();
-  setSaving(true);
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
 
-  const errorsFound = validate();
-  setErrors(errorsFound);
-  if (Object.keys(errorsFound).length > 0) {
-    alert("⚠️ Periksa kembali inputan yang belum valid.");
-    setSaving(false);
-    return;
-  }
+    const errorsFound = validate();
+    setErrors(errorsFound);
+    if (Object.keys(errorsFound).length > 0) {
+      alert("⚠️ Periksa kembali inputan yang belum valid.");
+      setSaving(false);
+      return;
+    }
 
-  try {
-    // === 1️⃣ Gabungkan file lama + file baru (agar tidak kehilangan file size di Drive) ===
-    let allFiles = [];
+    try {
+      // === 1️⃣ Gabungkan file lama + file baru (agar tidak kehilangan file size di Drive) ===
+      let allFiles = [];
 
-    for (const [category, fileArr] of Object.entries(files)) {
-      const converted = await Promise.all(
-        fileArr.map(async (file) => {
-          // ✅ Jika file lama (sudah punya url & bukan file baru)
-          if (file.url && !file.data) {
-            return {
-              category,
-              filename: file.name || file.url.split("/").pop(),
-              url: file.url,
-              keepExisting: true, // tandai sebagai file lama
-            };
-          }
-
-          // ✅ Jika file baru — ubah ke base64
-          return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve({
+      for (const [category, fileArr] of Object.entries(files)) {
+        const converted = await Promise.all(
+          fileArr.map(async (file) => {
+            // ✅ Jika file lama (sudah punya url & bukan file baru)
+            if (file.url && !file.data) {
+              return {
                 category,
-                filename: file.name,
-                type: file.type,
-                data: reader.result.split(",")[1],
-              });
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
-        })
-      );
+                filename: file.name || file.url.split("/").pop(),
+                url: file.url,
+                keepExisting: true, // tandai sebagai file lama
+              };
+            }
 
-      allFiles = allFiles.concat(converted);
-    }
+            // ✅ Jika file baru — ubah ke base64
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () =>
+                resolve({
+                  category,
+                  filename: file.name,
+                  type: file.type,
+                  data: reader.result.split(",")[1],
+                });
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+          })
+        );
 
-    // ✅ Tambahkan file lama dari existingFiles (yang sudah tersimpan sebelumnya)
-    const mergedFiles = [
-      ...existingFiles.map((f) => ({
-        category: f.category,
-        filename: f.name,
-        url: f.url,
-        keepExisting: true,
-      })),
-      ...allFiles,
-    ];
+        allFiles = allFiles.concat(converted);
+      }
 
-    // === 2️⃣ Siapkan payload lengkap ===
-    const payload = {
-      kode_toko: form.kodeToko,
-      nama_toko: form.namaToko,
-      cabang: user?.cabang || "UNKNOWN",
-      luas_sales: form.luasSales,
-      luas_parkir: form.luasParkir,
-      luas_gudang: form.luasGudang,
-      files: mergedFiles,
-    };
+      // ✅ Tambahkan file lama dari existingFiles (yang sudah tersimpan sebelumnya)
+      const mergedFiles = [
+        ...existingFiles.map((f) => ({
+          category: f.category,
+          filename: f.name,
+          url: f.url,
+          keepExisting: true,
+        })),
+        ...allFiles,
+      ];
 
-    // === 3️⃣ Endpoint Render ===
-    const BASE_URL =
-      process.env.NEXT_PUBLIC_API_URL ||
-      "https://penyimpanan-dokumen-s8p6.onrender.com";
+      // === 2️⃣ Siapkan payload lengkap ===
+      const payload = {
+        kode_toko: form.kodeToko,
+        nama_toko: form.namaToko,
+        cabang: user?.cabang || "UNKNOWN",
+        luas_sales: form.luasSales,
+        luas_parkir: form.luasParkir,
+        luas_gudang: form.luasGudang,
+        files: mergedFiles,
+      };
 
-    const url = form.isEditing
-      ? `${BASE_URL}/document/${form.kodeToko}`
-      : `${BASE_URL}/save-document-base64/`;
+      // === 3️⃣ Endpoint Render ===
+      const BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://penyimpanan-dokumen-s8p6.onrender.com";
 
-    const method = form.isEditing ? "PUT" : "POST";
+      const url = form.isEditing
+        ? `${BASE_URL}/document/${form.kodeToko}`
+        : `${BASE_URL}/save-document-base64/`;
 
-    console.log(`📤 ${method} ke ${url}`, payload);
+      const method = form.isEditing ? "PUT" : "POST";
 
-    // === 4️⃣ Kirim ke backend ===
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json().catch(() => null);
-    console.log("📥 Response:", json);
+      console.log(`📤 ${method} ke ${url}`, payload);
 
-    // === 5️⃣ Hasil ===
-    if (res.ok && json?.ok) {
-      const msg = form.isEditing
-        ? "Dokumen berhasil diperbarui!"
-        : "Dokumen berhasil disimpan!";
-
-      // ✅ Tampilkan notifikasi sukses modern
-      window.dispatchEvent(new CustomEvent("show-success", { detail: msg }));
-
-      // ✅ Reset form dan preview
-      window.dispatchEvent(new Event("clear-previews"));
-      setForm({
-        kodeToko: "",
-        namaToko: "",
-        luasSales: "",
-        luasParkir: "",
-        luasGudang: "",
-        isEditing: false,
+      // === 4️⃣ Kirim ke backend ===
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      setFiles({
-        fotoAsal: [],
-        fotoRenovasi: [],
-        me: [],
-        sipil: [],
-        sketsaAwal: [],
-        pendukung: [],
-      });
-      setExistingFiles([]);
-      setErrors({});
-      onSaved(json);
-    } else {
-      alert("❌ Dokumen gagal disimpan, kode toko sudah terdaftar!");
+      const json = await res.json().catch(() => null);
+      console.log("📥 Response:", json);
+
+      // === 5️⃣ Hasil ===
+      if (json?.ok) {
+        const msg = form.isEditing
+          ? json.message || "✅ Dokumen berhasil diperbarui!"
+          : json.message || "✅ Dokumen berhasil disimpan!";
+
+        // ✅ Notifikasi sukses
+        window.dispatchEvent(new CustomEvent("show-success", { detail: msg }));
+
+        // ✅ Reset form & preview
+        window.dispatchEvent(new Event("clear-previews"));
+        setForm({
+          kodeToko: "",
+          namaToko: "",
+          luasSales: "",
+          luasParkir: "",
+          luasGudang: "",
+          isEditing: false,
+        });
+        setFiles({
+          fotoAsal: [],
+          fotoRenovasi: [],
+          me: [],
+          sipil: [],
+          sketsaAwal: [],
+          pendukung: [],
+        });
+        setExistingFiles([]);
+        setErrors({});
+        onSaved(json);
+      } else {
+        // 🔹 Tampilkan pesan error dari backend (contoh: file duplikat)
+        const msg =
+          json?.message ||
+          "❌ Gagal menyimpan dokumen (kode toko mungkin sudah terdaftar).";
+        alert(msg);
+      }
+
+    } catch (err) {
+      console.error("🔥 Error saat upload:", err);
+      alert("❌ Gagal menghubungi server!");
+    } finally {
+      setSaving(false);
     }
-  } catch (err) {
-    console.error("🔥 Error saat upload:", err);
-    alert("❌ Gagal menghubungi server!");
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
 
   const ErrMsg = (key) =>
