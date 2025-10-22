@@ -7,7 +7,7 @@ import Login from "./components/Login";
 import Toast from "./components/Toast";
 import SuccessModal from "./components/SuccessModal";
 import ErrorModal from "./components/ErrorModal";
-
+import WarningModal from "./components/WarningModal";
 
 // 🔹 Komponen modal logout modern
 function LogoutModal({ show, onConfirm, onCancel }) {
@@ -42,6 +42,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [warningMsg, setWarningMsg] = useState(null);
 
   // === Ambil daftar dokumen dari backend (filter sesuai cabang user) ===
   useEffect(() => {
@@ -120,6 +121,18 @@ export default function App() {
     };
     window.addEventListener("show-error", onShowError);
     return () => window.removeEventListener("show-error", onShowError);
+  }, []);
+
+
+  useEffect(() => {
+    const onShowWarning = (e) => {
+      setWarningMsg({
+        title: "Warning",
+        message: e.detail,
+      });
+    };
+    window.addEventListener("show-warning", onShowWarning);
+    return () => window.removeEventListener("show-warning", onShowWarning);
   }, []);
 
 
@@ -287,7 +300,15 @@ export default function App() {
           onClose={() => setErrorMsg(null)}
         />
       )}
-      
+
+      {warningMsg && (
+        <WarningModal
+          title={warningMsg.title}
+          message={warningMsg.message}
+          onClose={() => setWarningMsg(null)}
+        />
+      )}
+
     </div>
   );
 }

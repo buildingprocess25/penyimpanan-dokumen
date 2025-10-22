@@ -696,6 +696,37 @@ body {
   background: #b51f1f;
 }
 
+
+/* === ⚠️ Warning Modal === */
+.modal-box.warning {
+  background: #fff9e6;
+  border-top: 6px solid #f4b400;
+  text-align: center;
+  padding: 24px;
+  border-radius: 10px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+  width: 320px;
+  animation: fadeIn 0.3s ease;
+}
+
+.icon-circle.warning-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #f4b400;
+  color: #fff;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-weight: 700;
+}
+
+.btn-warning-close:hover {
+  background: #d9a000;
+}
+
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
   .app-header {

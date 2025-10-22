@@ -306,8 +306,8 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
           json?.message ||
           "❌ Gagal menyimpan dokumen (kode toko mungkin sudah terdaftar).";
 
-        // 🔹 Ganti alert dengan modal error
-        window.dispatchEvent(new CustomEvent("show-error", { detail: msg }));
+        // 🔹 Ganti alert dengan modal warning
+        window.dispatchEvent(new CustomEvent("show-warning", { detail: msg }));
       }
     } catch (err) {
       console.error("🔥 Error saat upload:", err);

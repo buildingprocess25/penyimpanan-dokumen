@@ -35,7 +35,7 @@ SCOPES = [
 # =========================
 def load_credentials():
     if not os.path.exists("token.json"):
-        raise Exception("❌ token.json tidak ditemukan. Jalankan dulu auth_google.py untuk login.")
+        raise Exception("token.json tidak ditemukan. Jalankan dulu auth_google.py untuk login.")
 
     with open("token.json", "r") as token_file:
         creds_data = json.load(token_file)
@@ -178,7 +178,7 @@ def upload_one_file(
 # =========================
 @app.get("/")
 def root():
-    return {"message": "✅ Backend Alfamart (OAuth Multi-Upload) aktif!"}
+    return {"message": "Backend Alfamart (OAuth Multi-Upload) aktif!"}
 
 @app.post("/auth/login")
 async def login(request: Request):
@@ -228,10 +228,10 @@ async def login(request: Request):
         raise HTTPException(status_code=401, detail="Email atau password salah.")
 
     except Exception as e:
-        # ✅ Biarkan HTTPException lewat tanpa dibungkus ulang
+        # Biarkan HTTPException lewat tanpa dibungkus ulang
         if isinstance(e, HTTPException):
             raise e
-        # ⚠️ Error tak terduga (misal koneksi Google API)
+        # Error tak terduga (misal koneksi Google API)
         raise HTTPException(status_code=500, detail=f"Terjadi kesalahan server: {e}")
 
 
@@ -307,7 +307,7 @@ async def save_document_base64(request: Request):
         except HTTPException:
             raise
         except Exception as e:
-            print(f"⚠️ Gagal membaca spreadsheet untuk validasi duplikat: {e}")
+            print(f"Gagal membaca spreadsheet untuk validasi duplikat: {e}")
 
         # === 3️⃣ Lanjutkan proses upload ke Drive ===
         cabang_folder = get_or_create_folder(cabang, DRIVE_ROOT_ID, drive_service)
@@ -333,7 +333,7 @@ async def save_document_base64(request: Request):
             try:
                 raw = decode_base64_maybe_with_prefix(f.get("data") or "")
             except Exception as e:
-                print(f"⚠️ Gagal decode base64 untuk {filename}: {e}")
+                print(f"Gagal decode base64 untuk {filename}: {e}")
                 continue
 
             try:
@@ -359,7 +359,7 @@ async def save_document_base64(request: Request):
                             fields="id"
                         ).execute()
                     except Exception as perm_err:
-                        print(f"⚠️ Tidak bisa set permission publik untuk {filename}: {perm_err}")
+                        print(f"Tidak bisa set permission publik untuk {filename}: {perm_err}")
 
                 # Bentuk direct link
                 direct_link = ""
@@ -372,11 +372,11 @@ async def save_document_base64(request: Request):
                 if direct_link:
                     file_links.append(f"{category}|{filename}|{direct_link}")
                     kategori_log[category]["sukses"] += 1
-                    print(f"✅ Uploaded: {filename} → {category}")
+                    print(f"Uploaded: {filename} → {category}")
                 else:
-                    print(f"⚠️ {filename} diunggah tetapi tidak memiliki link valid.")
+                    print(f"{filename} diunggah tetapi tidak memiliki link valid.")
             except Exception as e:
-                print(f"❌ Gagal upload {filename} → {category}: {e}")
+                print(f"Gagal upload {filename} → {category}: {e}")
 
         print("\n========== HASIL UPLOAD ==========")
         for cat, info in kategori_log.items():
@@ -399,7 +399,7 @@ async def save_document_base64(request: Request):
 
         return {
             "ok": True,
-            "message": f"✅ {len(file_links)} file berhasil diunggah ke Google Drive",
+            "message": f"{len(file_links)} file berhasil diunggah ke Google Drive",
             "folder_link": f"https://drive.google.com/drive/folders/{toko_folder}",
             "files_uploaded": len(file_links),
         }
@@ -444,7 +444,7 @@ async def update_document(kode_toko: str, request: Request):
         if duplicates:
             return {
                 "ok": False,
-                "message": f"❌ Tidak boleh upload file duplikat pada kategori yang sama! Duplikat ditemukan: {', '.join(duplicates)}"
+                "message": f"Tidak boleh upload file duplikat pada kategori yang sama! Duplikat ditemukan: {', '.join(duplicates)}"
             }
 
         # 🔹 Cari data toko
@@ -502,9 +502,9 @@ async def update_document(kode_toko: str, request: Request):
         for f in to_delete:
             try:
                 drive_service.files().delete(fileId=f["id"]).execute()
-                print(f"🗑️ Hapus file: {f['name']} (kategori: {f['category']})")
+                print(f"Hapus file: {f['name']} (kategori: {f['category']})")
             except Exception as del_err:
-                print(f"⚠️ Gagal hapus {f['name']}: {del_err}")
+                print(f"Gagal hapus {f['name']}: {del_err}")
 
         # === 🔹 UPLOAD / PERTAHANKAN ===
         file_links = []
@@ -566,10 +566,10 @@ async def update_document(kode_toko: str, request: Request):
 
                     file_links.append(f"{category}|{filename}|{direct_link}")
                     kategori_log[category]["sukses"] += 1
-                    print(f"✅ Upload baru: {filename} ke kategori {category}")
+                    print(f"Upload baru: {filename} ke kategori {category}")
 
                 except Exception as e:
-                    print(f"❌ Gagal upload {filename}: {e}")
+                    print(f"Gagal upload {filename}: {e}")
 
             # === CASE 2: file lama (tanpa data base64)
             else:
@@ -582,7 +582,7 @@ async def update_document(kode_toko: str, request: Request):
                     file_links.append(f"{existing['category']}|{existing['filename']}|{existing['link']}")
                     print(f"🔁 Pertahankan file lama: {existing['filename']} ({existing['category']})")
                 else:
-                    print(f"⚠️ File lama tidak ditemukan: {filename} ({category})")
+                    print(f"File lama tidak ditemukan: {filename} ({category})")
 
         # === 🔹 UPDATE spreadsheet ===
         SHEET.update(
@@ -602,7 +602,7 @@ async def update_document(kode_toko: str, request: Request):
 
         return {
             "ok": True,
-            "message": "✅ Dokumen & file berhasil diperbarui per kategori.",
+            "message": "Dokumen berhasil diperbarui.",
             "folder_link": old_folder_link,
             "files_uploaded": len(file_links),
         }
@@ -631,10 +631,10 @@ async def delete_document(kode_toko: str):
             try:
                 drive_service.files().delete(fileId=folder_id).execute()
             except Exception as e:
-                print("⚠️ Gagal hapus folder di Drive:", e)
+                print("Gagal hapus folder di Drive:", e)
 
         SHEET.delete_rows(row_index)
-        return {"ok": True, "message": "🗑️ Dokumen berhasil dihapus."}
+        return {"ok": True, "message": "Dokumen berhasil dihapus."}
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Gagal hapus: {e}")
