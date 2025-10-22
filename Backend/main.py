@@ -451,7 +451,7 @@ async def update_document(kode_toko: str, request: Request):
         existing_names = {f["name"] for f in existing_files}
         new_names = {f.get("filename") for f in files if f.get("filename")}
 
-        # 🔹 Hapus file yang dihapus oleh user (tidak dikirim lagi di frontend)
+        # 🔹 Hapus file yang dihapus user (tidak dikirim lagi di frontend)
         to_delete = [f for f in existing_files if f["name"] not in new_names]
         for f in to_delete:
             try:
@@ -460,22 +460,28 @@ async def update_document(kode_toko: str, request: Request):
             except Exception as del_err:
                 print(f"⚠️ Gagal hapus {f['name']}: {del_err}")
 
-        # === Upload file baru / perbarui file yang sama ===
+        # === Upload file baru / replace file yang berubah ===
         file_links = []
         kategori_log = {}
         category_folders = {}
 
         for idx, f in enumerate(files, start=1):
+            filename = f.get("filename") or f"file_{idx}"
             category = (f.get("category") or "pendukung").strip() or "pendukung"
+            mime_type = guess_mime(filename, f.get("type"))
+
+            # 🔸 Skip file lama (existing)
+            if f.get("existing"):
+                print(f"⏩ Lewati file lama (tidak diubah): {filename}")
+                continue
+
+            # 🔸 Pastikan folder kategori sudah ada
             if category not in category_folders:
                 category_folders[category] = get_or_create_folder(category, toko_folder_id, drive_service)
                 kategori_log[category] = {"total": 0, "sukses": 0}
             kategori_log[category]["total"] += 1
 
-            filename = f.get("filename") or f"file_{idx}"
-            mime_type = guess_mime(filename, f.get("type"))
-
-            # ✅ Replace file lama dengan nama sama
+            # 🔸 Coba hapus versi lama (replace)
             try:
                 same_name = drive_service.files().list(
                     q=f"'{category_folders[category]}' in parents and name='{filename}' and trashed=false",
@@ -487,13 +493,19 @@ async def update_document(kode_toko: str, request: Request):
             except Exception as e:
                 print(f"⚠️ Gagal hapus file lama {filename}: {e}")
 
-            # Decode base64 baru
+            # 🔸 Decode base64 baru
+            data_str = f.get("data", "")
+            if not data_str or len(data_str) < 50:
+                print(f"❌ Data base64 kosong atau tidak valid untuk {filename}, dilewati.")
+                continue
+
             try:
-                raw = decode_base64_maybe_with_prefix(f.get("data") or "")
+                raw = decode_base64_maybe_with_prefix(data_str)
             except Exception as e:
                 print(f"⚠️ Gagal decode base64 untuk {filename}: {e}")
                 continue
 
+            # 🔸 Upload file baru
             try:
                 uploaded = upload_one_file(
                     drive_service=drive_service,
@@ -563,7 +575,7 @@ async def update_document(kode_toko: str, request: Request):
 
         return {
             "ok": True,
-            "message": "✅ Dokumen & file berhasil diperbarui (file lama diganti).",
+            "message": "✅ Dokumen & file berhasil diperbarui (file lama diganti bila ada perubahan).",
             "folder_link": old_folder_link,
             "files_uploaded": len(file_links),
         }
