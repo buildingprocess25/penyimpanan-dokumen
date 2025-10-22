@@ -186,41 +186,53 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
     }
 
     try {
-      // === 1️⃣ Konversi file baru ke base64 ===
-      let base64Files = [];
+      // === 1️⃣ Gabungkan file lama + file baru (agar tidak kehilangan file size di Drive) ===
+      let allFiles = [];
+
       for (const [category, fileArr] of Object.entries(files)) {
         const converted = await Promise.all(
-          fileArr.map(
-            (file) =>
-              new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () =>
-                  resolve({
-                    category,
-                    filename: file.name,
-                    type: file.type,
-                    data: reader.result.split(",")[1],
-                  });
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-              })
-          )
+          fileArr.map(async (file) => {
+            // ✅ Jika file lama (sudah punya url & bukan file baru)
+            if (file.url && !file.data) {
+              return {
+                category,
+                filename: file.name || file.url.split("/").pop(),
+                url: file.url,
+                keepExisting: true, // tandai sebagai file lama
+              };
+            }
+
+            // ✅ Jika file baru — ubah ke base64
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () =>
+                resolve({
+                  category,
+                  filename: file.name,
+                  type: file.type,
+                  data: reader.result.split(",")[1],
+                });
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+          })
         );
-        base64Files = base64Files.concat(converted);
+
+        allFiles = allFiles.concat(converted);
       }
 
-      // === 2️⃣ Gabungkan file lama + baru ===
+      // ✅ Tambahkan file lama dari existingFiles (yang sudah tersimpan sebelumnya)
       const mergedFiles = [
         ...existingFiles.map((f) => ({
           category: f.category,
           filename: f.name,
           url: f.url,
-          existing: true,
+          keepExisting: true,
         })),
-        ...base64Files,
+        ...allFiles,
       ];
 
-      // === 3️⃣ Siapkan payload
+      // === 2️⃣ Siapkan payload lengkap ===
       const payload = {
         kode_toko: form.kodeToko,
         nama_toko: form.namaToko,
@@ -231,14 +243,20 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
         files: mergedFiles,
       };
 
+      // === 3️⃣ Endpoint Render ===
+      const BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://penyimpanan-dokumen-s8p6.onrender.com";
+
       const url = form.isEditing
-        ? `https://penyimpanan-dokumen-s8p6.onrender.com/document/${form.kodeToko}`
-        : "https://penyimpanan-dokumen-s8p6.onrender.com/save-document-base64/";
+        ? `${BASE_URL}/document/${form.kodeToko}`
+        : `${BASE_URL}/save-document-base64/`;
+
       const method = form.isEditing ? "PUT" : "POST";
 
       console.log(`📤 ${method} ke ${url}`, payload);
 
-      // === 4️⃣ Kirim ke backend
+      // === 4️⃣ Kirim ke backend ===
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -247,13 +265,16 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
       const json = await res.json().catch(() => null);
       console.log("📥 Response:", json);
 
-      // === 5️⃣ Hasil
+      // === 5️⃣ Hasil ===
       if (res.ok && json?.ok) {
         const msg = form.isEditing
           ? "Dokumen berhasil diperbarui!"
           : "Dokumen berhasil disimpan!";
+
+        // ✅ Tampilkan notifikasi sukses modern
         window.dispatchEvent(new CustomEvent("show-success", { detail: msg }));
 
+        // ✅ Reset form dan preview
         window.dispatchEvent(new Event("clear-previews"));
         setForm({
           kodeToko: "",
