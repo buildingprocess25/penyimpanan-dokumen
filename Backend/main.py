@@ -17,6 +17,7 @@ import time
 import re
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Response
 
 # =========================
 # KONFIGURASI GOOGLE (dari environment)
@@ -654,3 +655,25 @@ def get_documents(kode_toko: str):
         return {"ok": True, "data": found}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal ambil data: {e}")
+
+
+# --- HEALTH CHECK ---
+@app.get("/health", response_class=Response)
+async def health():
+    """
+    Endpoint ringan untuk pengecekan status server (dipakai UptimeRobot & cron-job.org).
+    Return cepat tanpa overhead JSON encoding.
+    """
+    return Response(content="OK", media_type="text/plain", status_code=200)
+
+@app.head("/health", response_class=Response)
+async def health_head():
+    """
+    HEAD request agar lebih efisien, tidak mengembalikan body.
+    """
+    return Response(status_code=200)
+
+if __name__ == "__main__":
+    import uvicorn, os
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
