@@ -235,13 +235,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  
+
   // 🔹 Logout langsung dari modal warning
   const handleLogoutNow = () => {
-    logout();
+    confirmLogout();
     localStorage.clear();
     sessionStorage.clear();
-    setWarning("");
+    setWarningMsg("");
     window.location.reload();
   };
 
