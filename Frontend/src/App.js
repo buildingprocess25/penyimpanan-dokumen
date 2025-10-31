@@ -10,7 +10,6 @@ import ErrorModal from "./components/ErrorModal";
 import WarningModal from "./components/WarningModal";
 import AutoLogoutModal from "./components/AutoLogoutModal";
 
-// 🔹 Komponen modal logout modern
 function LogoutModal({ show, onConfirm, onCancel }) {
   if (!show) return null;
   return (
@@ -35,7 +34,7 @@ function LogoutModal({ show, onConfirm, onCancel }) {
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [page, setPage] = useState("list"); // "list" | "form"
+  const [page, setPage] = useState("list");
   const [editingDoc, setEditingDoc] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [docs, setDocs] = useState([]);
@@ -45,39 +44,13 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [warningMsg, setWarningMsg] = useState(null);
 
-  // === Ambil daftar dokumen dari backend (filter sesuai cabang user) ===
-  useEffect(() => {
-    async function fetchDocs() {
-      if (!user?.cabang) return; // pastikan user sudah login dan punya cabang
-
-      try {
-        // 🔹 Kirim parameter cabang ke backend
-        const url = `https://penyimpanan-dokumen-s8p6.onrender.com/documents?cabang=${encodeURIComponent(user.cabang)}`;
-        const res = await fetch(url);
-        const json = await res.json();
-
-        if (json.ok && Array.isArray(json.items)) {
-          setDocs(json.items); // pakai json.items karena di backend kita pakai key ini
-        } else {
-          setDocs([]);
-        }
-      } catch (err) {
-        console.error("❌ Gagal ambil dokumen:", err);
-        setDocs([]);
-      }
-    }
-
-    fetchDocs();
-  }, [refreshKey, user]);
-
-  
   // === Load user dari localStorage ===
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setUser(JSON.parse(stored));
   }, []);
 
-  // 🧹 Reset halaman jika user berubah (misal dari logout lalu login user lain)
+  // === Reset halaman jika user logout ===
   useEffect(() => {
     if (!user) {
       setPage("list");
@@ -85,7 +58,25 @@ export default function App() {
     }
   }, [user]);
 
+  // === Ambil daftar dokumen ===
+  useEffect(() => {
+    async function fetchDocs() {
+      if (!user?.cabang) return;
+      try {
+        const url = `https://penyimpanan-dokumen-s8p6.onrender.com/documents?cabang=${encodeURIComponent(
+          user.cabang
+        )}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        setDocs(json.ok && Array.isArray(json.items) ? json.items : []);
+      } catch {
+        setDocs([]);
+      }
+    }
+    fetchDocs();
+  }, [refreshKey, user]);
 
+  // === Toast, Success, Error, Warning Event ===
   useEffect(() => {
     const onToast = (e) => setToast(e.detail);
     window.addEventListener("show-toast", onToast);
@@ -94,13 +85,8 @@ export default function App() {
 
   useEffect(() => {
     const onShowSuccess = (e) => {
-      // ✅ hanya tampilkan notifikasi jika masih di halaman form
       if (page === "form") {
-        setSuccessMsg({
-          title: "Success",
-          message: e.detail,
-        });
-        // tunggu 8 detik lalu balik ke list
+        setSuccessMsg({ title: "Success", message: e.detail });
         setTimeout(() => {
           setEditingDoc(null);
           setRefreshKey((k) => k + 1);
@@ -112,51 +98,61 @@ export default function App() {
     return () => window.removeEventListener("show-success", onShowSuccess);
   }, [page]);
 
-
   useEffect(() => {
-    const onShowError = (e) => {
-      setErrorMsg({
-        title: "Error",
-        message: e.detail,
-      });
-    };
+    const onShowError = (e) =>
+      setErrorMsg({ title: "Error", message: e.detail });
     window.addEventListener("show-error", onShowError);
     return () => window.removeEventListener("show-error", onShowError);
   }, []);
 
-
   useEffect(() => {
-    const onShowWarning = (e) => {
-      setWarningMsg({
-        title: "Warning",
-        message: e.detail,
-      });
-    };
+    const onShowWarning = (e) =>
+      setWarningMsg({ title: "Warning", message: e.detail });
     window.addEventListener("show-warning", onShowWarning);
     return () => window.removeEventListener("show-warning", onShowWarning);
   }, []);
 
-
   // === Logout Modal Handler ===
   const handleLogoutClick = () => setShowLogout(true);
-  const confirmLogout = () => {
-    // 🔹 Hapus data login
-    localStorage.removeItem("user");
+  const confirmLogout = () => handleLogoutNow();
+  const cancelLogout = () => setShowLogout(false);
 
-    // 🔹 Reset semua state agar data user lama tidak terbawa
+  const handleLogoutNow = () => {
+    localStorage.removeItem("user");
     setUser(null);
     setPage("list");
     setEditingDoc(null);
     setDocs([]);
     setRefreshKey((k) => k + 1);
-
-    // 🔹 Tutup modal
-    setShowLogout(false);
-
-    // 🔹 Optional: Bersihkan form dari event sebelumnya
     window.dispatchEvent(new Event("clear-previews"));
   };
-  const cancelLogout = () => setShowLogout(false);
+
+  // === Auto Logout jam 18.00 WIB ===
+  useEffect(() => {
+    if (!user) return;
+
+    const checkSessionTimeout = () => {
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      const wib = new Date(utc + 7 * 60 * 60000);
+      const hour = wib.getHours();
+      const minute = wib.getMinutes();
+
+      if (hour >= 18) {
+        const currentTime = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        setWarningMsg({
+          title: "Warning",
+          message: `⏰ Sesi Anda telah berakhir.\nLogin hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${currentTime} WIB.`,
+        });
+      }
+    };
+
+    checkSessionTimeout();
+    const interval = setInterval(checkSessionTimeout, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // === Login sukses ===
   const handleLoginSuccess = () => {
@@ -164,37 +160,29 @@ export default function App() {
     if (stored) setUser(JSON.parse(stored));
   };
 
-  // === Handler dokumen tersimpan ===
-  const handleSaved = () => {
+  const handleSaved = () =>
     setTimeout(() => {
       setEditingDoc(null);
       setRefreshKey((k) => k + 1);
       setPage("list");
     }, 3000);
-  };
 
-  // === Handler klik edit dari tabel ===
   const handleEdit = async (doc) => {
     const kode = doc.KodeToko || doc.kode_toko;
     try {
-      const res = await fetch(`https://penyimpanan-dokumen-s8p6.onrender.com/documents/${kode}`);
+      const res = await fetch(
+        `https://penyimpanan-dokumen-s8p6.onrender.com/documents/${kode}`
+      );
       const json = await res.json();
-
       if (json.ok) {
         setEditingDoc(json.data);
-        // 🧠 Tunggu sebentar supaya state terset dulu
         setTimeout(() => setPage("form"), 100);
-      } else {
-        alert("❌ Gagal memuat detail dokumen.");
-      }
-    } catch (err) {
-      console.error("❌ Gagal ambil detail:", err);
+      } else alert("❌ Gagal memuat detail dokumen.");
+    } catch {
       alert("❌ Terjadi kesalahan saat mengambil data.");
     }
   };
 
-
-  // === Tambah dokumen baru ===
   const handleAddNew = () => {
     setEditingDoc(null);
     setPage("form");
@@ -203,70 +191,23 @@ export default function App() {
   // === Jika belum login ===
   if (!user) return <Login onSuccess={handleLoginSuccess} />;
 
-
-  // AUTO LOGOUT JIKA SUDAH LEWAT JAM 18:00 WIB
-  useEffect(() => {
-    if (!user) return;
-
-    const checkSessionTimeout = () => {
-      const now = new Date();
-
-      // Ubah waktu lokal ke WIB (UTC+7)
-      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-      const wib = new Date(utc + 7 * 60 * 60000);
-
-      const hour = wib.getHours();
-      const minute = wib.getMinutes();
-
-      // Jika sudah jam 18:00 WIB atau lebih → logout otomatis
-      if (hour >= 10) {
-        const currentTime = `${hour.toString().padStart(2, "0")}:${minute
-          .toString()
-          .padStart(2, "0")}`;
-        setWarningMsg(
-          `Sesi Anda telah berakhir.\nLogin hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${currentTime} WIB.`
-        );
-      }
-    };
-
-    // Cek langsung saat login dan tiap 1 menit sekali
-    checkSessionTimeout();
-    const interval = setInterval(checkSessionTimeout, 60000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-
-  // 🔹 Logout langsung dari modal warning
-  const handleLogoutNow = () => {
-    confirmLogout();
-    localStorage.clear();
-    sessionStorage.clear();
-    setWarningMsg("");
-    window.location.reload();
-  };
-
-
   // === Tampilan utama ===
   return (
     <div className="App">
-      {/* HEADER */}
       <header className="app-header">
         <div className="header-top">
           <h1>PENYIMPANAN DOKUMEN TOKO ALFAMART</h1>
         </div>
         <div className="header-bottom">
           <span className="header-left">
-            Building & Maintenance —{" "}
-            <strong>{user?.nama || user?.email}</strong>
+            Building & Maintenance — <strong>{user?.nama || user?.email}</strong>
           </span>
-          <span className="header-center"></span>
           <button className="btn-logout" onClick={handleLogoutClick}>
             Logout
           </button>
         </div>
       </header>
 
-      {/* HALAMAN UTAMA */}
       <main className="main-content">
         {page === "list" && (
           <section className="card">
@@ -279,24 +220,21 @@ export default function App() {
               }}
             >
               <h2>Daftar Dokumen</h2>
-              {/* 🚫 Hanya tampilkan tombol Tambah jika bukan Head Office */}
               {user?.cabang?.toLowerCase() !== "head office" && (
-              <button className="btn btn-primary add-btn" onClick={handleAddNew}>
-                <img src="/plus.png" alt="Tambah" className="btn-icon" />
-                Tambah Dokumen
-              </button>
+                <button
+                  className="btn btn-primary add-btn"
+                  onClick={handleAddNew}
+                >
+                  <img src="/plus.png" alt="Tambah" className="btn-icon" />
+                  Tambah Dokumen
+                </button>
               )}
             </div>
-
-            {/* ✅ Beri data & handler edit ke tabel */}
-            <DocumentTable
-              docs={docs}
-              onEdit={handleEdit}
-            />
+            <DocumentTable docs={docs} onEdit={handleEdit} />
           </section>
         )}
 
-        {page === "form" && user && (
+        {page === "form" && (
           <section className="card">
             <button
               className="btn btn-outline"
@@ -314,7 +252,6 @@ export default function App() {
         )}
       </main>
 
-      {/* 🔹 Modal Logout */}
       <LogoutModal
         show={showLogout}
         onConfirm={confirmLogout}
@@ -322,13 +259,8 @@ export default function App() {
       />
 
       {toast && (
-        <Toast
-          message={toast}
-          type="success"
-          onClose={() => setToast(null)}
-        />
+        <Toast message={toast} type="success" onClose={() => setToast(null)} />
       )}
-
       {successMsg && (
         <SuccessModal
           title={successMsg.title}
@@ -336,7 +268,6 @@ export default function App() {
           onClose={() => setSuccessMsg(null)}
         />
       )}
-
       {errorMsg && (
         <ErrorModal
           title={errorMsg.title}
@@ -344,24 +275,23 @@ export default function App() {
           onClose={() => setErrorMsg(null)}
         />
       )}
-
       {warningMsg && (
-        <WarningModal
-          title={warningMsg.title}
-          message={warningMsg.message}
-          onClose={() => setWarningMsg(null)}
-        />
+        <>
+          <WarningModal
+            title={warningMsg.title}
+            message={warningMsg.message}
+            onClose={() => {
+              setWarningMsg(null);
+              handleLogoutNow();
+            }}
+          />
+          <AutoLogoutModal
+            title={warningMsg.title}
+            message={warningMsg.message}
+            onClose={handleLogoutNow}
+          />
+        </>
       )}
-
-      {/* ⚠️ Modal muncul otomatis saat jam operasional berakhir */}
-      {warningMsg && (
-        <AutoLogoutModal
-          title={warningMsg.title}
-          message={warningMsg.message}
-          onClose={handleLogoutNow}
-        />
-      )}
-
     </div>
   );
 }
