@@ -7,6 +7,8 @@ export default function Login({ onSuccess }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");      // 🔹 pesan info jam kerja
+  const [isAllowed, setIsAllowed] = useState(true); // 🔹 boleh login atau tidak
 
   // --- cek jam kerja saat halaman dibuka ---
   useEffect(() => {
