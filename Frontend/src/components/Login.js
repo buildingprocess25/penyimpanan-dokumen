@@ -101,6 +101,22 @@ export default function Login({ onSuccess }) {
         <p style={{ textAlign: "center", margin: "0 0 25px", color: "#6b7280" }}>
           Penyimpanan Dokumen Toko
         </p>
+        
+        {info && (
+          <div
+            style={{
+              background: "#fff7ed",
+              color: "#b45309",
+              border: "1px solid #fcd34d",
+              padding: "8px 10px",
+              borderRadius: 8,
+              marginBottom: 12,
+              fontSize: 14,
+            }}
+          >
+            {info}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: 12 }}>
