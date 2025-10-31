@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StorageAPI } from "../utils/storage";
 
 export default function Login({ onSuccess }) {
