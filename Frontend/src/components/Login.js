@@ -29,7 +29,7 @@ export default function Login({ onSuccess }) {
     const minute = wib.getMinutes();
 
     // 🔹 Atur batas jam operasional (06:00–18:00 WIB)
-    if (hour < 6 || hour >= 18) {
+    if (hour < 14 || hour >= 18) {
       setIsAllowed(false);
       setInfo(
         `⏰ Login hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.
