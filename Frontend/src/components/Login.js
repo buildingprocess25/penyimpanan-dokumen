@@ -8,6 +8,39 @@ export default function Login({ onSuccess }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  // --- cek jam kerja saat halaman dibuka ---
+  useEffect(() => {
+    checkOperationalHours();
+    // interval opsional agar update tiap menit
+    const timer = setInterval(checkOperationalHours, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const checkOperationalHours = () => {
+    const now = new Date();
+
+    // 🔹 Konversi ke UTC+07:00 (WIB)
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000; // ubah ke UTC murni
+    const wib = new Date(utc + 7 * 60 * 60000); // tambahkan 7 jam → WIB
+
+    const hour = wib.getHours();
+    const minute = wib.getMinutes();
+
+    // 🔹 Atur batas jam operasional (06:00–18:00 WIB)
+    if (hour < 6 || hour >= 18) {
+      setIsAllowed(false);
+      setInfo(
+        `⏰ Login hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.
+        Sekarang pukul ${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`
+      );
+    } else {
+      setIsAllowed(true);
+      setInfo("");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErr("");
@@ -109,11 +142,16 @@ export default function Login({ onSuccess }) {
           <button
             type="submit"
             className="btn-primary-login"
-            disabled={busy}
-            style={{ width: "100%" }}
+            disabled={busy || !isAllowed}
+            style={{
+              width: "100%",
+              opacity: isAllowed ? 1 : 0.6,
+              cursor: isAllowed ? "pointer" : "not-allowed",
+            }}
           >
             {busy ? "Memproses..." : "Login"}
           </button>
+
         </form>
       </div>
     </div>
