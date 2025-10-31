@@ -235,6 +235,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
+  
+  // 🔹 Logout langsung dari modal warning
+  const handleLogoutNow = () => {
+    logout();
+    localStorage.clear();
+    sessionStorage.clear();
+    setWarning("");
+    window.location.reload();
+  };
+
 
   // === Tampilan utama ===
   return (
