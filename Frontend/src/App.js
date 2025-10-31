@@ -8,7 +8,7 @@ import Toast from "./components/Toast";
 import SuccessModal from "./components/SuccessModal";
 import ErrorModal from "./components/ErrorModal";
 import WarningModal from "./components/WarningModal";
-import WarningModal from "./components/AutoLogoutModal";
+import AutoLogoutModal from "./components/AutoLogoutModal";
 
 // 🔹 Komponen modal logout modern
 function LogoutModal({ show, onConfirm, onCancel }) {
