@@ -658,13 +658,9 @@ def get_documents(kode_toko: str):
 
 
 # --- HEALTH CHECK ---
-@app.get("/health", response_class=Response)
+@app.get("/health")
 async def health():
-    """
-    Endpoint ringan untuk pengecekan status server (dipakai UptimeRobot & cron-job.org).
-    Return cepat tanpa overhead JSON encoding.
-    """
-    return Response(content="OK", media_type="text/plain", status_code=200)
+    return "ok"   # bukan JSON besar
 
 @app.head("/health", response_class=Response)
 async def health_head():
