@@ -138,7 +138,7 @@ export default function App() {
       const hour = wib.getHours();
       const minute = wib.getMinutes();
 
-      if (hour >= 18) {
+      if (hour >= 11) {
         const currentTime = `${hour.toString().padStart(2, "0")}:${minute
           .toString()
           .padStart(2, "0")}`;
