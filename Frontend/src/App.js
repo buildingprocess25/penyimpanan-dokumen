@@ -8,6 +8,7 @@ import Toast from "./components/Toast";
 import SuccessModal from "./components/SuccessModal";
 import ErrorModal from "./components/ErrorModal";
 import WarningModal from "./components/WarningModal";
+import WarningModal from "./components/AutoLogoutModal";
 
 // 🔹 Komponen modal logout modern
 function LogoutModal({ show, onConfirm, onCancel }) {
@@ -202,6 +203,39 @@ export default function App() {
   // === Jika belum login ===
   if (!user) return <Login onSuccess={handleLoginSuccess} />;
 
+
+  // AUTO LOGOUT JIKA SUDAH LEWAT JAM 18:00 WIB
+  useEffect(() => {
+    if (!user) return;
+
+    const checkSessionTimeout = () => {
+      const now = new Date();
+
+      // Ubah waktu lokal ke WIB (UTC+7)
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      const wib = new Date(utc + 7 * 60 * 60000);
+
+      const hour = wib.getHours();
+      const minute = wib.getMinutes();
+
+      // Jika sudah jam 18:00 WIB atau lebih → logout otomatis
+      if (hour >= 10) {
+        const currentTime = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+        setWarningMsg(
+          `Sesi Anda telah berakhir.\nLogin hanya dapat dilakukan pada jam operasional 06.00–18.00 WIB.\nSekarang pukul ${currentTime} WIB.`
+        );
+      }
+    };
+
+    // Cek langsung saat login dan tiap 1 menit sekali
+    checkSessionTimeout();
+    const interval = setInterval(checkSessionTimeout, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+
   // === Tampilan utama ===
   return (
     <div className="App">
@@ -308,6 +342,13 @@ export default function App() {
           onClose={() => setWarningMsg(null)}
         />
       )}
+
+      {/* ⚠️ Modal muncul otomatis saat jam operasional berakhir */}
+      <AutoLogoutModal
+        title="Warning"
+        message={warning}
+        onClose={handleLogoutNow}
+      />
 
     </div>
   );
