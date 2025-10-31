@@ -344,11 +344,13 @@ export default function App() {
       )}
 
       {/* ⚠️ Modal muncul otomatis saat jam operasional berakhir */}
-      <AutoLogoutModal
-        title="Warning"
-        message={warning}
-        onClose={handleLogoutNow}
-      />
+      {warningMsg && (
+        <AutoLogoutModal
+          title={warningMsg.title}
+          message={warningMsg.message}
+          onClose={handleLogoutNow}
+        />
+      )}
 
     </div>
   );
