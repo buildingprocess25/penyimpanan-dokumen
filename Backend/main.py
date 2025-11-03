@@ -658,18 +658,58 @@ def get_documents(kode_toko: str):
 
 
 # --- HEALTH CHECK ---
-@app.get("/health")
+@app.get("/health", response_class=Response)
 async def health():
-    return "ok"   # bukan JSON besar
+    """
+    Endpoint sangat ringan untuk cron-job.org dan uptime monitor.
+    - Selalu return JSON kecil
+    - Tidak mencetak log besar
+    - Menyertakan pengecekan jam operasional (opsional)
+    """
+    try:
+        # 🔹 Konversi UTC → WIB (UTC+7)
+        now = datetime.now(timezone.utc) + timedelta(hours=7)
+        hour, minute = now.hour, now.minute
 
-@app.head("/health", response_class=Response)
+        # 🔹 (Opsional) batasi jam operasional 06:00–18:00 WIB
+        if hour < 6 or hour >= 18:
+            return Response(
+                content='{"status":"off-hours"}',
+                media_type="application/json",
+                status_code=503,
+            )
+
+        # 🔹 Return ringan (max 30 bytes)
+        return Response(
+            content='{"status":"ok"}',
+            media_type="application/json",
+            status_code=200,
+        )
+
+    except Exception:
+        # jika ada error internal, tetap kembalikan response kecil
+        return Response(
+            content='{"status":"error"}',
+            media_type="application/json",
+            status_code=500,
+        )
+
+
+@app.head("/health")
 async def health_head():
     """
-    HEAD request agar lebih efisien, tidak mengembalikan body.
+    HEAD request lebih ringan — tidak kirim body sama sekali.
     """
     return Response(status_code=200)
 
+
+# --- MAIN ENTRYPOINT ---
 if __name__ == "__main__":
-    import uvicorn, os
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="critical",  # ✅ nonaktifkan semua log info/debug
+        access_log=False,      # ✅ matikan access log Uvicorn bawaan
+    )
