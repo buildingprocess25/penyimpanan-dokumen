@@ -124,6 +124,11 @@ export default function App() {
     setEditingDoc(null);
     setDocs([]);
     setRefreshKey((k) => k + 1);
+    setShowLogout(false);
+    setToast(null);
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    setWarningMsg(null);
     window.dispatchEvent(new Event("clear-previews"));
   };
 
