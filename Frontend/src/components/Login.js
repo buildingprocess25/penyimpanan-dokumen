@@ -9,6 +9,7 @@ export default function Login({ onSuccess }) {
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");      // 🔹 pesan info jam kerja
   const [isAllowed, setIsAllowed] = useState(true); // 🔹 boleh login atau tidak
+  const [showPassword, setShowPassword] = useState(false);
 
   // --- cek jam kerja saat halaman dibuka ---
   useEffect(() => {
@@ -130,15 +131,54 @@ export default function Login({ onSuccess }) {
             />
           </div>
 
+          {/* ===== Password with eye toggle (final rapi) ===== */}
           <div className="form-group" style={{ marginBottom: 16 }}>
-            <label>Password </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Masukkan password"
-              required
-            />
+            <label>Password</label>
+
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan password"
+                required
+                disabled={!isAllowed}
+                style={{
+                  width: "100%",
+                  paddingRight: 36, // beri ruang kecil untuk icon
+                  boxSizing: "border-box",
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  color: "#555",
+                  fontSize: 14, // 🔹 perkecil ikon mata
+                  width: 20,
+                  height: 20,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                }}
+                disabled={!isAllowed}
+              >
+                <i
+                  className={showPassword ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"}
+                ></i>
+              </button>
+            </div>
           </div>
 
           {err && (
