@@ -11,15 +11,24 @@ export default function DocumentTable({ onEdit }) {
   // === Pagination & Filter ===
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterCabang, setFilterCabang] = useState("");
   const rowsPerPage = 5; // ubah sesuai kebutuhan
 
   // === Filter Data ===
-  const filteredDocs = docs.filter((d) => {
+  const filteredDocs = docs
+  .filter((d) => {
     const kode = (d.kode_toko || d.KodeToko || "").toLowerCase();
     const nama = (d.nama_toko || d.NamaToko || "").toLowerCase();
     const term = searchTerm.toLowerCase();
     return kode.includes(term) || nama.includes(term);
+  })
+  .filter((d) => {
+    // ❗ Filter cabang hanya muncul untuk Head Office
+    if (user?.cabang?.toLowerCase() !== "head office") return true;
+    if (!filterCabang) return true;
+    return d.cabang?.toLowerCase() === filterCabang.toLowerCase();
   });
+
 
   const totalPages = Math.ceil(filteredDocs.length / rowsPerPage);
   const currentDocs = filteredDocs.slice(
@@ -52,10 +61,17 @@ export default function DocumentTable({ onEdit }) {
       const role = user?.role || "";
 
       // 🔹 Tentukan URL dengan filter cabang (HEAD OFFICE / admin bisa lihat semua)
-      const url =
-        role === "admin" || cabang.toLowerCase() === "head office"
-          ? `${StorageAPI.BASE_URL}/documents`
-          : `${StorageAPI.BASE_URL}/documents?cabang=${encodeURIComponent(cabang)}`;
+      let url = "";
+
+      // Head Office boleh lihat semua cabang
+      if (cabang.toLowerCase() === "head office") {
+        url = `${StorageAPI.BASE_URL}/documents`;
+      } 
+      // Selain HO hanya lihat cabangnya sendiri
+      else {
+        url = `${StorageAPI.BASE_URL}/documents?cabang=${encodeURIComponent(cabang)}`;
+      }
+
 
       // 🔹 Fetch ke backend
       const res = await fetch(url);
@@ -133,6 +149,30 @@ export default function DocumentTable({ onEdit }) {
           flexWrap: "wrap",
         }}
       >
+        {user?.cabang?.toLowerCase() === "head office" && (
+          <div style={{ marginRight: "12px" }}>
+            <select
+              className="search-input"
+              style={{ padding: "8px", minWidth: "180px" }}
+              value={filterCabang}
+              onChange={(e) => {
+                setFilterCabang(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <option value="">Semua Cabang</option>
+              {docs
+                .map((d) => d.cabang)
+                .filter((v, i, arr) => v && arr.indexOf(v) === i)
+                .sort()
+                .map((c, i) => (
+                  <option key={i} value={c}>
+                    {c}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
 
         <div className="search-box">
           <input
