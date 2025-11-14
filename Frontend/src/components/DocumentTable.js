@@ -140,18 +140,22 @@ export default function DocumentTable({ onEdit }) {
 
   return (
     <div className="table-card">
-      {/* 🔍 Filter Search */}
+      {/* 🔍 FILTER BAR - sejajar kiri & kanan */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           marginBottom: "14px",
+          gap: "14px",
           flexWrap: "wrap",
+          width: "100%",
         }}
       >
+
+        {/* 🔹 KIRI — Filter Cabang (khusus Head Office) */}
         {user?.cabang?.toLowerCase() === "head office" && (
-          <div className="search-box" style={{ marginBottom: "10px" }}>
+          <div className="search-box" style={{ flex: 1, maxWidth: "380px" }}>
             <input
               type="text"
               className="search-input"
@@ -166,8 +170,8 @@ export default function DocumentTable({ onEdit }) {
           </div>
         )}
 
-
-        <div className="search-box">
+        {/* 🔹 KANAN — Filter Nama/Kode Toko */}
+        <div className="search-box" style={{ flex: 1, maxWidth: "380px" }}>
           <input
             type="text"
             className="search-input"
@@ -178,9 +182,7 @@ export default function DocumentTable({ onEdit }) {
               setCurrentPage(1);
             }}
           />
-          <button className="search-btn" type="button">
-            🔍
-          </button>
+          <button className="search-btn" type="button">🔍</button>
         </div>
       </div>
 
