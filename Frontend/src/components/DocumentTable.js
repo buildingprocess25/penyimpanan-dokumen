@@ -144,10 +144,10 @@ export default function DocumentTable({ onEdit }) {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-start",   // 🔥 Sejajarkan ke kiri
           alignItems: "center",
           marginBottom: "14px",
-          gap: "14px",
+          gap: "14px",                     // 🔥 Jarak antar search box
           flexWrap: "wrap",
           width: "100%",
         }}
@@ -155,7 +155,7 @@ export default function DocumentTable({ onEdit }) {
 
         {/* 🔹 KIRI — Filter Cabang (khusus Head Office) */}
         {user?.cabang?.toLowerCase() === "head office" && (
-          <div className="search-box" style={{ flex: 1, maxWidth: "380px" }}>
+          <div className="search-box" style={{ flex: 1, maxWidth: "280px" }}>
             <input
               type="text"
               className="search-input"
