@@ -16,17 +16,18 @@ export default function DocumentTable({ onEdit }) {
 
   // === Filter Data ===
   const filteredDocs = docs
+  // Filter kode/nama toko
   .filter((d) => {
     const kode = (d.kode_toko || d.KodeToko || "").toLowerCase();
     const nama = (d.nama_toko || d.NamaToko || "").toLowerCase();
     const term = searchTerm.toLowerCase();
     return kode.includes(term) || nama.includes(term);
   })
+  // Filter cabang — hanya aktif untuk Head Office
   .filter((d) => {
-    // ❗ Filter cabang hanya muncul untuk Head Office
-    if (user?.cabang?.toLowerCase() !== "head office") return true;
-    if (!filterCabang) return true;
-    return d.cabang?.toLowerCase() === filterCabang.toLowerCase();
+    if (user?.cabang?.toLowerCase() !== "head office") return true; 
+    if (!filterCabang.trim()) return true;
+    return d.cabang?.toLowerCase().includes(filterCabang.toLowerCase());
   });
 
 
@@ -150,29 +151,21 @@ export default function DocumentTable({ onEdit }) {
         }}
       >
         {user?.cabang?.toLowerCase() === "head office" && (
-          <div style={{ marginRight: "12px" }}>
-            <select
+          <div className="search-box" style={{ marginBottom: "10px" }}>
+            <input
+              type="text"
               className="search-input"
-              style={{ padding: "8px", minWidth: "180px" }}
+              placeholder="Cari cabang..."
               value={filterCabang}
               onChange={(e) => {
                 setFilterCabang(e.target.value);
                 setCurrentPage(1);
               }}
-            >
-              <option value="">Semua Cabang</option>
-              {docs
-                .map((d) => d.cabang)
-                .filter((v, i, arr) => v && arr.indexOf(v) === i)
-                .sort()
-                .map((c, i) => (
-                  <option key={i} value={c}>
-                    {c}
-                  </option>
-                ))}
-            </select>
+            />
+            <button className="search-btn" type="button">🔍</button>
           </div>
         )}
+
 
         <div className="search-box">
           <input
