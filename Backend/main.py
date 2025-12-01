@@ -194,7 +194,7 @@ async def login(request: Request):
     password = data.get("password", "").strip().upper()
 
     if not username or not password:
-        raise HTTPException(status_code=400, detail="Username dan password wajib diisi.")
+        raise HTTPException(status_code=400, detail="Username dan password wajib diisi")
 
     try:
         # 🔹 Buka sheet 'Cabang'
@@ -226,9 +226,9 @@ async def login(request: Request):
                         },
                     }
                 else:
-                    raise HTTPException(status_code=403, detail="Jabatan tidak diizinkan.")
+                    raise HTTPException(status_code=403, detail="Jabatan tidak diizinkan")
 
-        raise HTTPException(status_code=401, detail="Email atau password salah.")
+        raise HTTPException(status_code=401, detail="Email atau password salah")
 
     except Exception as e:
         # Biarkan HTTPException lewat tanpa dibungkus ulang
