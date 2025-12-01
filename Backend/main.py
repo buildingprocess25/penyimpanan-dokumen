@@ -228,7 +228,7 @@ async def login(request: Request):
                 else:
                     raise HTTPException(status_code=403, detail="Jabatan tidak diizinkan")
 
-        raise HTTPException(status_code=401, detail="Email atau password salah")
+        raise HTTPException(status_code=401, detail="Username atau password salah")
 
     except Exception as e:
         # Biarkan HTTPException lewat tanpa dibungkus ulang
