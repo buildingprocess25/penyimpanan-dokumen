@@ -66,11 +66,11 @@ export default function DocumentTable({ onEdit }) {
 
       // Head Office boleh lihat semua cabang
       if (cabang.toLowerCase() === "head office") {
-        url = `${StorageAPI.BASE_URL}/documents`;
+        url = `${StorageAPI.BASE_URL}/api/doc/list`;
       } 
       // Selain HO hanya lihat cabangnya sendiri
       else {
-        url = `${StorageAPI.BASE_URL}/documents?cabang=${encodeURIComponent(cabang)}`;
+        url = `${StorageAPI.BASE_URL}/api/doc/list?cabang=${encodeURIComponent(cabang)}`;
       }
 
 
@@ -114,7 +114,7 @@ export default function DocumentTable({ onEdit }) {
   async function handleEdit(doc) {
     const kode = doc.KodeToko || doc.kode_toko;
     try {
-      const res = await fetch(`https://penyimpanan-dokumen-s8p6.onrender.com/documents/${kode}`);
+      const res = await fetch(`https://sparta-backend-5hdj.onrender.com/api/doc/detail/${kode}`);
       const json = await res.json();
 
       if (json.ok) {

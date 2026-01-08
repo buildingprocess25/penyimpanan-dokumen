@@ -2,7 +2,8 @@
 // 🌐 BACKEND CONNECTION
 // ============================
 
-export const BASE_URL = "https://penyimpanan-dokumen-s8p6.onrender.com"; // 🔹 ganti ke URL Render saat deploy
+// export const BASE_URL = "https://penyimpanan-dokumen-s8p6.onrender.com"; // 🔹 ganti ke URL Render saat deploy
+export const BASE_URL = "https://sparta-backend-5hdj.onrender.com"; // 🔹 ganti ke URL Render saat deploy
 
 export const StorageAPI = {
    BASE_URL,
@@ -10,7 +11,7 @@ export const StorageAPI = {
   // === Login ===
   async login(username, password) {
     try {
-      const res = await fetch(`${BASE_URL}/auth/login`, { // ubah juga route ke huruf kecil
+      const res = await fetch(`${BASE_URL}/api/doc/login`, { // ubah juga route ke huruf kecil
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -33,8 +34,8 @@ export const StorageAPI = {
   async getDocuments(cabang) {
     try {
       const url = cabang
-        ? `${BASE_URL}/documents?cabang=${encodeURIComponent(cabang)}`
-        : `${BASE_URL}/documents`;
+        ? `${BASE_URL}/api/doc/list?cabang=${encodeURIComponent(cabang)}`
+        : `${BASE_URL}/api/doc/list`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Gagal ambil data dokumen dari backend");
       return await res.json();
@@ -48,7 +49,7 @@ export const StorageAPI = {
   // === Simpan dokumen baru (POST base64) ===
   async saveDocumentBase64(payload) {
     try {
-      const res = await fetch(`${BASE_URL}/save-document-base64/`, {
+      const res = await fetch(`${BASE_URL}/api/doc/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -64,7 +65,7 @@ export const StorageAPI = {
   // === Ambil detail 1 dokumen (GET) ===
   async getDocumentByKode(kodeToko) {
     try {
-      const res = await fetch(`${BASE_URL}/document/${kodeToko}`);
+      const res = await fetch(`${BASE_URL}/api/doc/detail/${kodeToko}`);
       if (!res.ok) throw new Error("Dokumen tidak ditemukan");
       return await res.json();
     } catch (err) {
@@ -76,7 +77,7 @@ export const StorageAPI = {
   // === Update dokumen (PUT base64) ===
   async updateDocument(kodeToko, payload) {
     try {
-      const res = await fetch(`${BASE_URL}/document/${kodeToko}`, {
+      const res = await fetch(`${BASE_URL}/api/doc/update/${kodeToko}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -92,7 +93,7 @@ export const StorageAPI = {
   // === Hapus dokumen ===
   async deleteDocument(kodeToko) {
     try {
-      const res = await fetch(`${BASE_URL}/document/${kodeToko}`, {
+      const res = await fetch(`${BASE_URL}/api/doc/delete/${kodeToko}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Gagal hapus dokumen");
