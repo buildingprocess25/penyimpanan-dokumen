@@ -263,8 +263,8 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
         // process.env.NEXT_PUBLIC_API_URL || "https://penyimpanan-dokumen-s8p6.onrender.com";
         process.env.NEXT_PUBLIC_API_URL || "https://sparta-backend-5hdj.onrender.com";
       const url = form.isEditing
-        ? `${BASE_URL}/document/${form.kodeToko}`
-        : `${BASE_URL}/save-document-base64/`;
+        ? `${BASE_URL}/api/doc/update/${form.kodeToko}`
+        : `${BASE_URL}/api/doc/save/`;
 
       const method = form.isEditing ? "PUT" : "POST";
 
