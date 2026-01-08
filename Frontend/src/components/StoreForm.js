@@ -264,7 +264,7 @@ export default function StoreForm({ initialData = null, onSaved = () => {} }) {
         process.env.NEXT_PUBLIC_API_URL || "https://sparta-backend-5hdj.onrender.com";
       const url = form.isEditing
         ? `${BASE_URL}/api/doc/update/${form.kodeToko}`
-        : `${BASE_URL}/api/doc/save/`;
+        : `${BASE_URL}/api/doc/save`;
 
       const method = form.isEditing ? "PUT" : "POST";
 
